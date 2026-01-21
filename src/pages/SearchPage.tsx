@@ -2,13 +2,14 @@ import React from 'react';
 import {
     Box,
     Typography,
-    Grid,
+    Grid
 
 } from '@mui/material';
 import AccommodationCard from "../components/AccommodationCard.tsx";
+import type {Accommodation} from "../models.tsx";
 
 // Mock data for accommodations
-const mockAccommodations = [
+const mockAccommodations:Accommodation[] = [
     {
         id: 1,
         name: "Cozy Mountain Retreat",
@@ -171,7 +172,9 @@ const SearchResults: React.FC = () => {
 
             <Grid container spacing={3} columnSpacing={9}>
                 {mockAccommodations.map((accommodation) => (
-                    <Grid item xs={12} sm={6} md={4} xl={3} key={accommodation.id}>
+                    <Grid
+                        key={accommodation.id}
+                    >
                         <AccommodationCard accommodation={accommodation} />
                     </Grid>
                 ))}
