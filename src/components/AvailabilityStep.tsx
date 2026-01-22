@@ -4,6 +4,7 @@ import type {ExtraRule, PriceDefinition} from "../pages/CreateAccommodationPage.
 import GeneralAvailabilityCard from "./GeneralAvailabilityCard.tsx";
 import ExtraRulesCard from "./ExtraRuleCard.tsx";
 import AvailabilityCalendar from "./AvailabilityCalendar.tsx";
+import type {PickerValue} from "@mui/x-date-pickers/internals";
 
 interface AvailabilityStepProps {
     generalAvailability: PriceDefinition[];
@@ -37,12 +38,11 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
         setGeneralAvailability(generalAvailability.filter(avail => avail.id !== id));
     };
 
-    const handleGeneralAvailabilityChange = (id: number, field: string, value: any) => {
-        setGeneralAvailability(generalAvailability.map(avail =>
-            avail.id === id ? { ...avail, [field]: value } : avail
+    const handleGeneralAvailabilityChange = (id: number, field: string, value: string | PickerValue | null) => {
+        setGeneralAvailability(generalAvailability.map(item =>
+            item.id === id ? { ...item, [field]: value } : item
         ));
     };
-
     const handleAddExtraRule = () => {
         const newRule: ExtraRule = {
             id: Date.now(),
@@ -59,7 +59,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
         setExtraRules(extraRules.filter(rule => rule.id !== id));
     };
 
-    const handleExtraRuleChange = (id: number, field: string, value: any) => {
+    const handleExtraRuleChange = (id: number, field: string, value: string|PickerValue|null) => {
         setExtraRules(extraRules.map(rule =>
             rule.id === id ? { ...rule, [field]: value } : rule
         ));

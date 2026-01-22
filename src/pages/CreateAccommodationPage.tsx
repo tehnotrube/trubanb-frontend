@@ -7,7 +7,7 @@ import {
     StepLabel,
 
 } from '@mui/material';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 import BasicInfoStep from "../components/BasicInfoStep.tsx";
 import AvailabilityStep from "../components/AvailabilityStep.tsx";
 

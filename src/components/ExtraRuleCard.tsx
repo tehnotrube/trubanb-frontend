@@ -14,12 +14,13 @@ import {
 import {Add as AddIcon, Delete as DeleteIcon} from "@mui/icons-material";
 import {DatePicker} from "@mui/x-date-pickers";
 import type {ExtraRule} from "../pages/CreateAccommodationPage.tsx";
+import type {PickerValue} from "@mui/x-date-pickers/internals";
 
 interface ExtraRulesCardProps {
     extraRules: ExtraRule[];
     onAdd: () => void;
     onRemove: (id: number) => void;
-    onChange: (id: number, field: string, value: any) => void;
+    onChange: (id: number, field: string, value: string|PickerValue|null) => void;
 }
 
 const ExtraRulesCard: React.FC<ExtraRulesCardProps> = ({

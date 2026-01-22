@@ -12,23 +12,27 @@ import {
 } from "@mui/material";
 import {Close as CloseIcon, CloudUpload as CloudUploadIcon} from "@mui/icons-material";
 
+interface BasicInfo {
+    name: string;
+    address: string;
+    city: string;
+    country: string;
+    zip: string;
+    minGuests: string;
+    maxGuests: string;
+}
+
+interface Amenities {
+    wifi: boolean;
+    ac: boolean;
+    parking: boolean;
+}
+
 interface BasicInfoStepProps {
-    basicInfo: {
-        name: string;
-        address: string;
-        city: string;
-        country: string;
-        zip: string;
-        minGuests: string;
-        maxGuests: string;
-    };
-    setBasicInfo: React.Dispatch<React.SetStateAction<any>>;
-    amenities: {
-        wifi: boolean;
-        ac: boolean;
-        parking: boolean;
-    };
-    setAmenities: React.Dispatch<React.SetStateAction<any>>;
+    basicInfo: BasicInfo;
+    setBasicInfo: React.Dispatch<React.SetStateAction<BasicInfo>>;
+    amenities: Amenities;
+    setAmenities: React.Dispatch<React.SetStateAction<Amenities>>;
     images: string[];
     setImages: React.Dispatch<React.SetStateAction<string[]>>;
     onNext: () => void;
@@ -43,11 +47,11 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                                                          setImages,
                                                          onNext,
                                                      }) => {
-    const handleBasicInfoChange = (field: string, value: string) => {
+    const handleBasicInfoChange = (field: keyof BasicInfo, value: string) => {
         setBasicInfo({ ...basicInfo, [field]: value });
     };
 
-    const handleAmenityToggle = (amenity: string) => {
+    const handleAmenityToggle = (amenity: keyof Amenities) => {
         setAmenities({ ...amenities, [amenity]: !amenities[amenity] });
     };
 

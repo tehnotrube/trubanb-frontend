@@ -14,12 +14,13 @@ import {
 import {Add as AddIcon, Delete as DeleteIcon} from "@mui/icons-material";
 import {DatePicker} from "@mui/x-date-pickers";
 import type {PriceDefinition} from "../pages/CreateAccommodationPage.tsx";
+import type {PickerValue} from "@mui/x-date-pickers/internals";
 
 interface GeneralAvailabilityCardProps {
     generalAvailability: PriceDefinition[];
     onAdd: () => void;
     onRemove: (id: number) => void;
-    onChange: (id: number, field: string, value: any) => void;
+    onChange: (id: number, field: string, value: string|PickerValue|null) => void;
 }
 
 const GeneralAvailabilityCard: React.FC<GeneralAvailabilityCardProps> = ({

@@ -37,7 +37,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
                     <Grid container spacing={3}>
                         {months.map((month, monthIndex) => (
-                            <Grid item xs={12} md={6} key={monthIndex}>
+                            <Grid key={monthIndex}>
                                 <Card variant="outlined">
                                     <CardContent>
                                         <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, textAlign: 'center' }}>
