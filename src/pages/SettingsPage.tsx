@@ -17,7 +17,7 @@ import {
 
 const SettingsPage: React.FC = () => {
     // TODO: Pull data from jwt/API
-    const role = 'host'; // Change to 'guest' to see guest settings
+    const role: 'host' | 'guest' = 'host'; // Change to 'guest' to see guest settings
 
     // Personal Details State
     const [personalDetails, setPersonalDetails] = useState({
@@ -30,6 +30,7 @@ const SettingsPage: React.FC = () => {
         zip: '11000',
         country: 'Serbia',
     });
+    console.log(role)
 
     // Password Change State
     const [passwordData, setPasswordData] = useState({
@@ -77,11 +78,11 @@ const SettingsPage: React.FC = () => {
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     };
 
-    const handleGuestNotificationToggle = (field: string) => {
+    const handleGuestNotificationToggle = (field: keyof typeof guestNotifications) => {
         setGuestNotifications({ ...guestNotifications, [field]: !guestNotifications[field] });
     };
 
-    const handleHostNotificationToggle = (field: string) => {
+    const handleHostNotificationToggle = (field: keyof typeof hostNotifications) => {
         setHostNotifications({ ...hostNotifications, [field]: !hostNotifications[field] });
     };
 
@@ -236,7 +237,7 @@ const SettingsPage: React.FC = () => {
                             Notifications
                         </Typography>
 
-                        {role === 'guest' ? (
+                        role == 'guest' ? (
                             <Box sx={{ mb: 3 }}>
                                 <FormControlLabel
                                     control={
@@ -307,7 +308,7 @@ const SettingsPage: React.FC = () => {
                                     }
                                 />
                             </Box>
-                        )}
+                        )
 
                         <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'error.main' }}>
                             Danger Zone

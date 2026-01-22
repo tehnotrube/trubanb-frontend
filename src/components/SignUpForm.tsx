@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {useState} from 'react';
 import {alpha} from '@mui/material/styles';
-import axios from 'axios';
+import axios, {AxiosError} from 'axios';
 import {Link as RouterLink} from 'react-router-dom';
 
 const SignUpForm = () => {
@@ -57,10 +57,12 @@ const SignUpForm = () => {
                 password: form.password,
             });
         } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'Registration failed'
-            );
+            const message =
+                err instanceof AxiosError
+                    ? err.response?.data?.message
+                    : 'Registration failed';
+
+            setError(message);
         } finally {
             setLoading(false);
         }

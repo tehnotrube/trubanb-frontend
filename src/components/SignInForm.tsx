@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {Link as RouterLink} from 'react-router-dom';
 import {useState} from 'react';
-import 'axios';
+import axios, {AxiosError} from "axios";
 
 const SignInForm = () => {
     const [username, setUsername] = useState('');
@@ -27,15 +27,14 @@ const SignInForm = () => {
                 password,
             });
 
-            // Example: handle token / user data
-            // localStorage.setItem('token', res.data.token);
-
             console.log('Auth success:', res.data);
         } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'Invalid username or password'
-            );
+            const message =
+                err instanceof AxiosError
+                    ? err.response?.data?.message
+                    : 'Invalid username or password';
+
+            setError(message);
         } finally {
             setLoading(false);
         }

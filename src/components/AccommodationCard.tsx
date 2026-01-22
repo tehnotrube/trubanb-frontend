@@ -6,21 +6,10 @@ import {
     People as PeopleIcon,
     Wifi as WifiIcon
 } from "@mui/icons-material";
-const accomodationExample ={
-    id: 1,
-    name: "ABC",
-    location: "AB",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop",
-    guests: { min: 2, max: 6 },
-    amenities: { wifi: true, ac: true, parking: true },
-    totalPrice: 1680,
-    pricePerNight: 280,
-    priceType: "accommodation",
-    rating: 4.5
-}
+import type {Accommodation} from "../models.tsx";
 
 interface AccommodationCardProps {
-    accommodation: typeof accomodationExample;
+    accommodation: Accommodation;
 }
 
 const AccommodationCard: React.FC<AccommodationCardProps> = ({ accommodation }) => {
