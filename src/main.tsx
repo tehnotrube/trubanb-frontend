@@ -12,6 +12,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import Sidebar from "./components/Sidebar.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
+import CreateAccommodationPage from "./pages/CreateAccommodationPage.tsx";
 
 const theme = createTheme({
     typography: {
@@ -69,6 +70,7 @@ const router = createBrowserRouter([ // TODO: Add guards to routes
     {path: "", element: <HomePage/>},
     {path:"/search", element:<Sidebar><SearchPage/></Sidebar>},
     {path:"/settings", element:<Sidebar><SettingsPage/></Sidebar>},
+    {path:"/create-accommodation", element:<Sidebar><CreateAccommodationPage/></Sidebar>},
     {path: "*", element: <Navigate to="/" replace/>},
 ])
 
