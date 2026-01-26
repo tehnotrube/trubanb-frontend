@@ -166,7 +166,6 @@ const SearchResults: React.FC = () => {
             <Typography variant="h4" sx={{ mb: 1, fontWeight: 600 }}>
                 Search Results
             </Typography>
-
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
                 {totalResults} accommodation{totalResults !== 1 ? 's' : ''} found
             </Typography>
