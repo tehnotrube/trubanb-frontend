@@ -13,6 +13,8 @@ import Sidebar from "./components/Sidebar.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
 import CreateAccommodationPage from "./pages/CreateAccommodationPage.tsx";
+import AccommodationPage from "./pages/AccommodationPage.tsx";
+import ReservationPage from "./pages/ReservationsPage.tsx";
 
 const theme = createTheme({
     typography: {
@@ -71,6 +73,8 @@ const router = createBrowserRouter([ // TODO: Add guards to routes
     {path:"/search", element:<Sidebar><SearchPage/></Sidebar>},
     {path:"/settings", element:<Sidebar><SettingsPage/></Sidebar>},
     {path:"/create-accommodation", element:<Sidebar><CreateAccommodationPage/></Sidebar>},
+    {path:"/accommodation", element:<Sidebar><AccommodationPage/></Sidebar>},
+    {path:"/reservations", element:<Sidebar><ReservationPage/></Sidebar>},
     {path: "*", element: <Navigate to="/" replace/>},
 ])
 
