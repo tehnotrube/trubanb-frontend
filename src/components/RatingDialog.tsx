@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -48,37 +48,12 @@ const RatingDialog: React.FC<RatingDialogProps> = ({
                                                        existingAccommodationRating,
                                                    }) => {
     const [currentTab, setCurrentTab] = useState(0);
-    const [hostRating, setHostRating] = useState<number>(0);
-    const [accommodationRating, setAccommodationRating] = useState<number>(0);
-    const [hostComment, setHostComment] = useState('');
-    const [accommodationComment, setAccommodationComment] = useState('');
+    const [hostRating, setHostRating] = useState<number>(existingHostRating?.rating ?? 0);
+    const [accommodationRating, setAccommodationRating] = useState<number>(existingAccommodationRating?.rating ?? 0);
+    const [hostComment, setHostComment] = useState(existingHostRating?.comment ?? '');
+    const [accommodationComment, setAccommodationComment] = useState(existingAccommodationRating?.comment ?? '');
     const [isEditingHost, setIsEditingHost] = useState(false);
     const [isEditingAccommodation, setIsEditingAccommodation] = useState(false);
-
-    useEffect(() => {
-        if (open) {
-            // Load existing ratings when dialog opens
-            if (existingHostRating) {
-                setHostRating(existingHostRating.rating);
-                setHostComment(existingHostRating.comment || '');
-                setIsEditingHost(false);
-            } else {
-                setHostRating(0);
-                setHostComment('');
-                setIsEditingHost(false);
-            }
-
-            if (existingAccommodationRating) {
-                setAccommodationRating(existingAccommodationRating.rating);
-                setAccommodationComment(existingAccommodationRating.comment || '');
-                setIsEditingAccommodation(false);
-            } else {
-                setAccommodationRating(0);
-                setAccommodationComment('');
-                setIsEditingAccommodation(false);
-            }
-        }
-    }, [open, existingHostRating, existingAccommodationRating]);
 
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setCurrentTab(newValue);
@@ -139,7 +114,13 @@ const RatingDialog: React.FC<RatingDialogProps> = ({
     const hasAccommodationRating = !!existingAccommodationRating;
 
     return (
-        <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="md"
+            fullWidth
+            key={`${existingHostRating?.rating}-${existingAccommodationRating?.rating}-${open}`}
+        >
             <DialogTitle>
                 {bothRated && !isEditingHost && !isEditingAccommodation
                     ? 'Your Ratings'
