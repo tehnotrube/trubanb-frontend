@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import {useContext, useState} from 'react';
 import {
     Box,
     Card,
@@ -11,8 +11,6 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    ToggleButtonGroup,
-    ToggleButton,
     Stack,
     Divider,
     Avatar,
@@ -27,6 +25,7 @@ import {
     CheckCircle,
     Block
 } from '@mui/icons-material';
+import {AuthContext} from "../utils/AuthContext.tsx";
 
 interface Reservation {
     id: string;
@@ -88,7 +87,7 @@ const mockReservations: Reservation[] = [
 ];
 
 export default function ReservationsPage() {
-    const [viewMode, setViewMode] = useState<'guest' | 'host'>('host');
+    const {role} = useContext(AuthContext)
     const [reservations, setReservations] = useState<Reservation[]>(mockReservations);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
@@ -99,12 +98,6 @@ export default function ReservationsPage() {
         action: null,
         reservationId: null
     });
-
-    const handleViewModeChange = (_: React.MouseEvent<HTMLElement>, newMode: 'guest' | 'host' | null) => {
-        if (newMode !== null) {
-            setViewMode(newMode);
-        }
-    };
 
     const openConfirmDialog = (action: 'cancel' | 'accept' | 'reject', reservationId: string) => {
         setConfirmDialog({ open: true, action, reservationId });
@@ -158,7 +151,7 @@ export default function ReservationsPage() {
     };
 
     const filteredReservations = reservations.filter(res =>
-        viewMode === 'guest' ? res.status !== 'rejected' : true
+        role === 'guest' ? res.status !== 'rejected' : true
     );
 
     return (
@@ -167,19 +160,6 @@ export default function ReservationsPage() {
                 <Typography variant="h4" fontWeight="bold">
                     Reservation Requests
                 </Typography>
-                <ToggleButtonGroup
-                    value={viewMode}
-                    exclusive
-                    onChange={handleViewModeChange}
-                    aria-label="view mode"
-                >
-                    <ToggleButton value="guest" aria-label="guest view">
-                        Guest View
-                    </ToggleButton>
-                    <ToggleButton value="host" aria-label="host view">
-                        Host View
-                    </ToggleButton>
-                </ToggleButtonGroup>
             </Stack>
 
             <Stack spacing={3}>
@@ -196,7 +176,7 @@ export default function ReservationsPage() {
                                             <Typography variant="h6" fontWeight="bold">
                                                 {reservation.accommodationName}
                                             </Typography>
-                                            {viewMode === 'host' && (
+                                            {role === 'host' && (
                                                 <Typography variant="body2" color="text.secondary">
                                                     Guest: {reservation.guestName}
                                                 </Typography>
@@ -269,7 +249,7 @@ export default function ReservationsPage() {
                                         </Stack>
                                     </Grid>
 
-                                    {viewMode === 'host' && (
+                                    {role === 'host' && (
                                         <Grid>
                                             <Stack direction="row" spacing={1} alignItems="center">
                                                 <Cancel fontSize="small" color="action" />
@@ -284,7 +264,7 @@ export default function ReservationsPage() {
                                 <Divider />
 
                                 <Stack direction="row" spacing={2} justifyContent="flex-end">
-                                    {viewMode === 'guest' && reservation.status === 'pending' && (
+                                    {role === 'guest' && reservation.status === 'pending' && (
                                         <Button
                                             variant="outlined"
                                             color="error"
@@ -295,7 +275,7 @@ export default function ReservationsPage() {
                                         </Button>
                                     )}
 
-                                    {viewMode === 'host' && reservation.status === 'pending' && (
+                                    {role === 'host' && reservation.status === 'pending' && (
                                         <>
                                             <Button
                                                 variant="outlined"

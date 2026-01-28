@@ -1,4 +1,4 @@
-import React, {type ReactNode, useState } from 'react';
+import React, {type ReactNode, useContext, useState} from 'react';
 import {
     Box,
     List,
@@ -17,21 +17,27 @@ import {
     Search as SearchIcon,
     Home as HomeIcon,
     Event as EventIcon,
+    Add,
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers';
+import {DatePicker} from '@mui/x-date-pickers';
+import SearchPage from "../pages/SearchPage.tsx";
+import {useLocation, useNavigate} from "react-router-dom";
+import {AuthContext} from "../utils/AuthContext.tsx";
 
 interface SidebarLayoutProps {
     children: ReactNode;
 }
 
-const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
-    const [view, setView] = useState<'menu' | 'search'>('menu');
-
+const SidebarLayout: React.FC<SidebarLayoutProps> = ({children}) => {
     //TODO: Pull data from jwt/API
-    const isAuthenticated = true;
-    const role = 'host';
+    const {isAuthenticated, role} = useContext(AuthContext);
     const username = 'vukasinb7';
     const profilePic = '';
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [view, setView] = useState<'menu' | 'search'>(location.pathname=="/"?'search':'menu');
+
+    const isHome = location.pathname === "/";
 
     const handleLogout = () => {
         localStorage.clear();
@@ -47,7 +53,11 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     };
 
     const goToSearch = () => {
-        setView('search')
+        if (window.location.pathname === '/') {
+            setView('search');
+        }else{
+            navigate('/')
+        }
     };
 
     const renderMenuItems = () => {
@@ -55,10 +65,11 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         if (role === 'host') {
             return (
                 <>
-                    <NavItem icon={<HomeIcon />} label="My Accommodations" />
-                    <NavItem icon={<EventIcon />} label="Reservation Requests" />
+                    <NavItem icon={<HomeIcon/>} label="My Accommodations" onClick={() => navigate('/my-accommodations')}/>
+                    <NavItem icon={<Add/>} label="Add Accommodation" onClick={() => navigate('/create-accommodation')}/>
+                    <NavItem icon={<EventIcon/>} label="Reservation Requests" onClick={()=>navigate('/reservations')} />
                     <NavItem
-                        icon={<SearchIcon />}
+                        icon={<SearchIcon/>}
                         label="Search"
                         onClick={goToSearch}
                     />
@@ -69,9 +80,9 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         if (role === 'guest') {
             return (
                 <>
-                    <NavItem icon={<EventIcon />} label="My Reservations" />
+                    <NavItem icon={<EventIcon/>} label="My Reservations" onClick={()=>navigate('/reservations')}/>
                     <NavItem
-                        icon={<SearchIcon />}
+                        icon={<SearchIcon/>}
                         label="Search"
                         onClick={goToSearch}
                     />
@@ -83,14 +94,19 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     };
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', maxHeight: '100vh', backgroundImage: 'url(/background.jpg)',
+        <Box sx={{
+            display: 'flex', minHeight: '100vh', maxHeight: '100vh', backgroundImage: 'url(/background.jpg)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat', }}>
+            backgroundRepeat: 'no-repeat'
+
+        }}>
             {/* Sidebar */}
             <Box
                 sx={{
-                    width: 250,
+                    width: 300,
+                    minWidth:300,
+                    maxWidth: 300,
                     bgcolor: 'rgba(93, 101, 50, 0.80)',
                     backdropFilter: 'blur(12px)',
                     WebkitBackdropFilter: 'blur(12px)',
@@ -108,25 +124,28 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                         display="flex"
                         flexDirection="column"
                         alignItems="center"
+                        sx={{cursor:'pointer'}}
                         mb={3}
+                        onClick={()=>navigate('/')}
                     >
-                        <Box component="img" src="/logo.png" sx={{ width: 120 }} />
-                        <Box component="img" src="/logo-text.png" sx={{ width: 150 }} />
+                        <Box component="img" src="/logo.png" sx={{width: 120}}/>
+                        <Box component="img" src="/logo-text.png" sx={{width: 150}}/>
                     </Box>
 
                     {/* MENU VIEW */}
-                    {view === 'menu' && <List>{renderMenuItems()}</List>}
+                    {view === 'menu' && isAuthenticated && <List>{renderMenuItems()}</List>}
 
                     {/* SEARCH VIEW */}
-                    {(view === 'search'|| !isAuthenticated) && (
+                    {(view === 'search' || !isAuthenticated) && (
                         <Box display="flex" flexDirection="column" gap={2}>
                             {isAuthenticated && (
                                 <NavItem
-                                    icon={<BackIcon />}
+                                    icon={<BackIcon/>}
                                     label="Back"
                                     onClick={() => setView('menu')}
                                 />
                             )}
+                            <Typography textAlign="center" mb={2} mt={2}>Search Accommodations</Typography>
 
                             <DatePicker slotProps={{
                                 textField: {
@@ -146,7 +165,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                                         }
                                     }
                                 }
-                            }}  label="Start date"/>
+                            }} label="Start date"/>
                             <DatePicker slotProps={{
                                 textField: {
                                     sx: {
@@ -165,21 +184,21 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                                         }
                                     }
                                 }
-                            }} label="End date" />
+                            }} label="End date"/>
 
                             <TextField
                                 label="Guests"
                                 type="number"
                                 variant="outlined"
-                                InputLabelProps={{ style: { color: 'white' } }}
-                                InputProps={{ style: { color: 'white' } }}
+                                InputLabelProps={{style: {color: 'white'}}}
+                                InputProps={{style: {color: 'white'}}}
                             />
 
                             <TextField
                                 label="Location"
                                 variant="outlined"
-                                InputLabelProps={{ style: { color: 'white' } }}
-                                InputProps={{ style: { color: 'white' } }}
+                                InputLabelProps={{style: {color: 'white'}}}
+                                InputProps={{style: {color: 'white'}}}
                             />
                         </Box>
                     )}
@@ -188,25 +207,27 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                 {/* Bottom */}
                 <Box>
                     {isAuthenticated ? (
-                        <Box display="flex" alignItems="center" gap={1}>
-                            <Avatar src={profilePic} />
-                            <Typography>{username}</Typography>
+                        <Box display="flex" alignItems="center">
+                            <Box display='flex' flexDirection='row' justifyContent='center' alignItems='center' onClick={()=>navigate('/settings')} sx={{cursor:'pointer'}}>
+                                <Avatar src={profilePic} sx={{mr:1}}/>
+                                <Typography ml='1'>{username}</Typography>
+                            </Box>
                             <IconButton
                                 onClick={handleLogout}
-                                sx={{ color: 'white', ml: 'auto' }}
+                                sx={{color: 'white', ml: 'auto'}}
                             >
-                                <LogoutIcon />
+                                <LogoutIcon onClick={() => navigate('/sign-in')}/>
                             </IconButton>
                         </Box>
                     ) : (
                         <Box display="flex" flexDirection="column" gap={1}>
-                            <Button variant="contained" onClick={goToSignIn}>
+                            <Button variant="outlined" onClick={goToSignIn} sx={{color: 'white', borderColor: 'white'}}>
                                 Sign In
                             </Button>
                             <Button
                                 variant="outlined"
                                 onClick={goToSignUp}
-                                sx={{ color: 'white', borderColor: 'white' }}
+                                sx={{color: 'primary', backgroundColor: 'rgba(255,255,255,0.8)', borderColor: 'white'}}
                             >
                                 Sign Up
                             </Button>
@@ -216,9 +237,11 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             </Box>
 
             {/* Main content */}
-            <Box sx={{ flexGrow: 1, p: 4, bgcolor: 'rgba(255, 255, 255, 0.90)',
+            <Box sx={{
+                flexGrow: 1, p: 4, bgcolor: 'rgba(255, 255, 255, 0.90)',
                 backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)', overflow:'auto'}}>{children}</Box>
+                WebkitBackdropFilter: 'blur(12px)', overflow: 'auto'
+            }}>{(!isAuthenticated && isHome) ? <SearchPage></SearchPage> : children}</Box>
         </Box>
     );
 };
@@ -238,13 +261,13 @@ const NavItem = ({
             color: 'white',
             borderRadius: 1,
             mb: 1,
-            '&:hover': { bgcolor: 'primary.light' },
+            '&:hover': {bgcolor: 'primary.light'},
         }}
     >
-        <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+        <ListItemIcon sx={{color: 'white', minWidth: 40}}>
             {icon}
         </ListItemIcon>
-        <ListItemText primary={label} />
+        <ListItemText primary={label}/>
     </ListItemButton>
 );
 
