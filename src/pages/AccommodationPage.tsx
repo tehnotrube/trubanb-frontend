@@ -22,8 +22,8 @@ import {
 
 } from '@mui/icons-material';
 import { Dayjs } from 'dayjs';
-// import ImageGallery from "../components/ImageGallery.tsx";
-// import ReservationDialog from '../components/ReservationDialog.tsx';
+import ImageGallery from "../components/ImageGallery.tsx";
+import ReservationDialog from '../components/ReservationDialog.tsx';
 import RatingsSection from "../components/RatingsSection.tsx";
 
 // Mock data - replace with API call
