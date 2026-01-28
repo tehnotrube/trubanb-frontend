@@ -7,12 +7,15 @@ import {
     Wifi as WifiIcon
 } from "@mui/icons-material";
 import type {Accommodation} from "../models.tsx";
+import {useNavigate} from "react-router-dom";
 
 interface AccommodationCardProps {
     accommodation: Accommodation;
 }
 
 const AccommodationCard: React.FC<AccommodationCardProps> = ({ accommodation }) => {
+    const navigate = useNavigate();
+
     return (
         <Card sx={{
             height: '100%',
@@ -27,7 +30,9 @@ const AccommodationCard: React.FC<AccommodationCardProps> = ({ accommodation }) 
                 transform: 'translateY(-4px)',
                 boxShadow: 6
             }
-        }}>
+
+        }}
+        onClick={()=>navigate(`/accommodation/1`)}>
             <CardMedia
                 component="img"
                 height="180"

@@ -5,28 +5,31 @@ import {createTheme, ThemeProvider} from "@mui/material";
 import {createBrowserRouter, Navigate, RouterProvider} from "react-router-dom";
 import SignInPage from "./pages/SignInPage.tsx";
 import SignUpPage from "./pages/SignUpPage.tsx";
-import HomePage from "./pages/HomePage.tsx";
 
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import {LocalizationProvider} from '@mui/x-date-pickers';
+import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs';
 import Sidebar from "./components/Sidebar.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
 import CreateAccommodationPage from "./pages/CreateAccommodationPage.tsx";
 import AccommodationPage from "./pages/AccommodationPage.tsx";
 import ReservationPage from "./pages/ReservationsPage.tsx";
+import {AuthProvider} from "./utils/AuthProvider.tsx";
+import {UnauthenticatedRoute} from "./pages/UnauthenticatedRoute.tsx";
+import {AuthenticatedRoute} from "./pages/AuthenticatedRoute.tsx";
+import MyAccommodationsPage from "./pages/MyAccommodationsPage.tsx";
 
 const theme = createTheme({
     typography: {
         fontFamily: '"Inter", "Libre Baskerville", sans-serif',
-        h1: { fontFamily: '"Libre Baskerville", serif' },
-        h2: { fontFamily: '"Libre Baskerville", serif' },
-        h3: { fontFamily: '"Libre Baskerville", serif' },
-        h4: { fontFamily: '"Libre Baskerville", serif' },
-        h5: { fontFamily: '"Libre Baskerville", serif' },
-        h6: { fontFamily: '"Libre Baskerville", serif' },
-        body1: { fontFamily: '"Libre Baskerville", serif' },
-        body2: { fontFamily: '"Libre Baskerville", serif' },
+        h1: {fontFamily: '"Libre Baskerville", serif'},
+        h2: {fontFamily: '"Libre Baskerville", serif'},
+        h3: {fontFamily: '"Libre Baskerville", serif'},
+        h4: {fontFamily: '"Libre Baskerville", serif'},
+        h5: {fontFamily: '"Libre Baskerville", serif'},
+        h6: {fontFamily: '"Libre Baskerville", serif'},
+        body1: {fontFamily: '"Libre Baskerville", serif'},
+        body2: {fontFamily: '"Libre Baskerville", serif'},
         button: {
             fontFamily: '"Libre Baskerville", serif',
             textTransform: 'uppercase',
@@ -67,23 +70,24 @@ export default theme;
 
 
 const router = createBrowserRouter([ // TODO: Add guards to routes
-    {path: "/sign-in", element: <SignInPage/>},
-    {path: "/sign-up", element: <SignUpPage/>},
-    {path: "", element: <HomePage/>},
-    {path:"/search", element:<Sidebar><SearchPage/></Sidebar>},
-    {path:"/settings", element:<Sidebar><SettingsPage/></Sidebar>},
-    {path:"/create-accommodation", element:<Sidebar><CreateAccommodationPage/></Sidebar>},
-    {path:"/accommodation", element:<Sidebar><AccommodationPage/></Sidebar>},
-    {path:"/reservations", element:<Sidebar><ReservationPage/></Sidebar>},
-    {path: "*", element: <Navigate to="/" replace/>},
+    {path: "/sign-in", element: <UnauthenticatedRoute><SignInPage/></UnauthenticatedRoute>},
+    {path: "/sign-up", element: <UnauthenticatedRoute><SignUpPage/></UnauthenticatedRoute>},
+    {path: "", element: <Sidebar><SearchPage/></Sidebar>},
+    {path: "/settings", element: <AuthenticatedRoute><Sidebar><SettingsPage/></Sidebar></AuthenticatedRoute>},
+    {path: "/my-accommodations", element: <AuthenticatedRoute><Sidebar><MyAccommodationsPage/></Sidebar></AuthenticatedRoute>},
+    {path: "/create-accommodation", element: <AuthenticatedRoute><Sidebar><CreateAccommodationPage/></Sidebar></AuthenticatedRoute>},
+    {path: "/accommodation/:id", element: <Sidebar><AccommodationPage/></Sidebar>},
+    {path: "/reservations", element: <AuthenticatedRoute><Sidebar><ReservationPage/></Sidebar></AuthenticatedRoute>},
+    {path: "*", element: <Navigate to="" replace/>},
 ])
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <ThemeProvider theme={theme}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-            {/*TODO: Add AUTH Provider*/}
-            <RouterProvider router={router}/>
+                <AuthProvider>
+                    <RouterProvider router={router}/>
+                </AuthProvider>
             </LocalizationProvider>
         </ThemeProvider>
     </StrictMode>,
