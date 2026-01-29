@@ -171,45 +171,13 @@ const SignUpForm = () => {
                 variant="standard"
                 required
                 onChange={handleChange('username')}
-                sx={{gridColumn: '1 / -1'}}
             />
-
             <TextField
                 label="Email"
                 variant="standard"
                 type="email"
                 required
                 onChange={handleChange('email')}
-                sx={{gridColumn: '1 / -1'}}
-            />
-
-            <TextField
-                label="Address"
-                variant="standard"
-                required
-                onChange={handleChange('address')}
-                sx={{gridColumn: '1 / -1'}}
-            />
-
-            <TextField
-                label="City"
-                variant="standard"
-                required
-                onChange={handleChange('city')}
-            />
-            <TextField
-                label="ZIP"
-                variant="standard"
-                required
-                onChange={handleChange('zip')}
-            />
-
-            <TextField
-                label="Country"
-                variant="standard"
-                required
-                onChange={handleChange('country')}
-                sx={{gridColumn: '1 / -1'}}
             />
 
             <TextField
@@ -218,16 +186,39 @@ const SignUpForm = () => {
                 type="password"
                 required
                 onChange={handleChange('password')}
-                sx={{gridColumn: '1 / -1'}}
             />
-
             <TextField
                 label="Repeat Password"
                 variant="standard"
                 type="password"
                 required
                 onChange={handleChange('repeatPassword')}
-                sx={{gridColumn: '1 / -1'}}
+            />
+
+            <TextField
+                label="Address"
+                variant="standard"
+                required
+                onChange={handleChange('address')}
+            />
+            <TextField
+                label="City"
+                variant="standard"
+                required
+                onChange={handleChange('city')}
+            />
+
+            <TextField
+                label="Country"
+                variant="standard"
+                required
+                onChange={handleChange('country')}
+            />
+            <TextField
+                label="ZIP"
+                variant="standard"
+                required
+                onChange={handleChange('zip')}
             />
 
             <FormControl sx={{ gridColumn: '1 / -1', mt: 2 }}>
@@ -236,6 +227,7 @@ const SignUpForm = () => {
                     row
                     value={form.role}
                     onChange={(e) => setForm({ ...form, role: e.target.value as 'guest' | 'host' })}
+                    sx={{ justifyContent: 'left' }}
                 >
                     <FormControlLabel 
                         value="guest" 
