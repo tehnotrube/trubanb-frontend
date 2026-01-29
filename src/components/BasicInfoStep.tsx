@@ -33,8 +33,8 @@ interface BasicInfoStepProps {
     setBasicInfo: React.Dispatch<React.SetStateAction<BasicInfo>>;
     amenities: Amenities;
     setAmenities: React.Dispatch<React.SetStateAction<Amenities>>;
-    images: string[];
-    setImages: React.Dispatch<React.SetStateAction<string[]>>;
+    images: { file: File; preview: string }[];
+    setImages: React.Dispatch<React.SetStateAction<{ file: File; preview: string }[]>>;
     onNext: () => void;
 }
 
@@ -58,14 +58,18 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
-            const newImages = Array.from(files).slice(0, 10 - images.length).map(file =>
-                URL.createObjectURL(file)
-            );
+            const newImages = Array.from(files)
+                .slice(0, 10 - images.length)
+                .map((file) => ({ file, preview: URL.createObjectURL(file) }));
             setImages([...images, ...newImages]);
         }
     };
 
     const handleImageRemove = (index: number) => {
+        const imageToRemove = images[index];
+        if (imageToRemove?.preview) {
+            URL.revokeObjectURL(imageToRemove.preview);
+        }
         setImages(images.filter((_, i) => i !== index));
     };
 
@@ -205,7 +209,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                                 >
                                     <Box
                                         component="img"
-                                        src={image}
+                                        src={image.preview}
                                         sx={{
                                             position: 'absolute',
                                             top: 0,

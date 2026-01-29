@@ -2,7 +2,7 @@
 // AccommodationViewPage.tsx - Main Page Component
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -11,7 +11,7 @@ import {
     Chip,
     Grid,
     Button,
-
+    CircularProgress,
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -25,6 +25,9 @@ import { Dayjs } from 'dayjs';
 import ImageGallery from "../components/ImageGallery.tsx";
 import ReservationDialog from '../components/ReservationDialog.tsx';
 import RatingsSection from "../components/RatingsSection.tsx";
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import { environment } from '../utils/environment.tsx';
 
 // Mock data - replace with API call
 const mockAccommodation = {
@@ -123,6 +126,7 @@ const mockAccommodationRatings = [
 ];
 
 const AccommodationViewPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [reservationDialogOpen, setReservationDialogOpen] = useState(false);
     const [reservationData, setReservationData] = useState({
@@ -130,8 +134,50 @@ const AccommodationViewPage: React.FC = () => {
         endDate: null as Dayjs | null,
         guests: '2',
     });
+    const [accommodation, setAccommodation] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const accommodation = mockAccommodation; // TODO: Replace with API call
+    useEffect(() => {
+        const fetchAccommodation = async () => {
+            try {
+                const response = await axios.get(`${environment}/api/accommodations/${id}`);
+                const acc = response.data;
+                
+                const transformedData = {
+                    id: acc.id,
+                    name: acc.name,
+                    address: acc.location.split(',')[0]?.trim() || acc.location,
+                    city: acc.location.split(',')[1]?.trim() || '',
+                    country: acc.location.split(',').slice(2).join(',').trim() || '',
+                    zip: '',
+                    amenities: {
+                        wifi: acc.amenities.includes('WiFi'),
+                        ac: acc.amenities.includes('AC') || acc.amenities.includes('Air Conditioning'),
+                        parking: acc.amenities.includes('Parking'),
+                    },
+                    minGuests: acc.minGuests,
+                    maxGuests: acc.maxGuests,
+                    price: Number(acc.basePrice),
+                    priceType: acc.isPerUnit ? 'accommodation' : 'person',
+                    images: acc.photoUrls && acc.photoUrls.length > 0
+                        ? acc.photoUrls
+                        : ["https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop"],
+                };
+                
+                setAccommodation(transformedData);
+                setLoading(false);
+            } catch (err: any) {
+                console.error('Error fetching accommodation:', err);
+                setError(err.response?.data?.message || 'Failed to load accommodation');
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchAccommodation();
+        }
+    }, [id]);
 
     const handleNextImage = () => {
         setCurrentImageIndex((prev) =>
@@ -150,6 +196,24 @@ const AccommodationViewPage: React.FC = () => {
         // TODO: API call to create reservation
         setReservationDialogOpen(false);
     };
+
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error || !accommodation) {
+        return (
+            <Box>
+                <Typography variant="h6" color="error">
+                    {error || 'Accommodation not found'}
+                </Typography>
+            </Box>
+        );
+    }
 
     return (
         <Box>
