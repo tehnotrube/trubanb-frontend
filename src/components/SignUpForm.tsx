@@ -6,12 +6,16 @@ import {
     Alert,
     Link,
 } from '@mui/material';
-import {useState} from 'react';
+import {useState, useContext} from 'react';
 import {alpha} from '@mui/material/styles';
 import axios, {AxiosError} from 'axios';
-import {Link as RouterLink} from 'react-router-dom';
+import {Link as RouterLink, useNavigate} from 'react-router-dom';
+import {environment} from '../utils/Environment';
+import {AuthContext} from '../utils/AuthContext';
 
 const SignUpForm = () => {
+    const navigate = useNavigate();
+    const { setUser, setAuthenticated } = useContext(AuthContext);
     const [form, setForm] = useState({
         name: '',
         surname: '',
@@ -45,17 +49,32 @@ const SignUpForm = () => {
 
         setLoading(true);
         try {
-            await axios.post('/api/user/register', {
-                name: form.name,
-                surname: form.surname,
+            const res = await axios.post(`${environment}/api/users/auth/register`, {
                 username: form.username,
                 email: form.email,
-                address: form.address,
-                city: form.city,
-                zip: form.zip,
-                country: form.country,
                 password: form.password,
+                firstName: form.name,
+                lastName: form.surname,
+                address: `${form.address}, ${form.city}, ${form.zip}, ${form.country}`,
             });
+            
+            // Store tokens
+            if (res.data.accessToken) {
+                localStorage.setItem('accessToken', res.data.accessToken);
+            }
+            if (res.data.refreshToken) {
+                localStorage.setItem('refreshToken', res.data.refreshToken);
+            }
+            
+            // Update auth context immediately
+            if (setUser && res.data.user) {
+                setUser(res.data.user);
+            }
+            if (setAuthenticated) {
+                setAuthenticated(true);
+            }
+            
+            navigate('/');
         } catch (err) {
             const message =
                 err instanceof AxiosError
