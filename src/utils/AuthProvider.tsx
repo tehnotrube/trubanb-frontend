@@ -5,7 +5,7 @@ interface AuthProviderProps {
 }
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
     const [isAuthenticated] = useState(true);
-    const [role] = useState<'guest'|'host'>('host');
+    const [role] = useState<'guest'|'host'>('guest');
     const [isLoading] = useState(false);
     useEffect(() => {
         // setIsLoading(true);

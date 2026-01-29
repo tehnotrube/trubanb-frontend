@@ -24,6 +24,7 @@ import {
 import { Dayjs } from 'dayjs';
 import ImageGallery from "../components/ImageGallery.tsx";
 import ReservationDialog from '../components/ReservationDialog.tsx';
+import RatingsSection from "../components/RatingsSection.tsx";
 
 // Mock data - replace with API call
 const mockAccommodation = {
@@ -52,6 +53,74 @@ const mockAccommodation = {
         "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
     ],
 };
+
+const mockHostRatings = [
+    {
+        id: '1',
+        username: 'Sarah Johnson',
+        rating: 5,
+        date: '2026-01-15',
+        comment: 'Excellent host! Very responsive and accommodating.',
+    },
+    {
+        id: '2',
+        username: 'Mike Chen',
+        rating: 4,
+        date: '2026-01-10',
+        comment: 'Great communication and helpful with local recommendations.',
+    },
+    {
+        id: '3',
+        username: 'Emily Rodriguez',
+        rating: 5,
+        date: '2025-12-28',
+        comment: 'The host went above and beyond to make our stay comfortable.',
+    },
+    {
+        id: '4',
+        username: 'David Thompson',
+        rating: 4,
+        date: '2025-12-20',
+    },
+];
+
+const mockAccommodationRatings = [
+    {
+        id: '1',
+        username: 'Jessica Martinez',
+        rating: 5,
+        date: '2026-01-18',
+        comment: 'Beautiful property with stunning views. Everything was spotless!',
+    },
+    {
+        id: '2',
+        username: 'Robert Williams',
+        rating: 4,
+        date: '2026-01-12',
+        comment: 'Great location and amenities. Would definitely stay again.',
+    },
+    {
+        id: '3',
+        username: 'Amanda Brown',
+        rating: 5,
+        date: '2026-01-05',
+        comment: 'Perfect for a family vacation. The kitchen was well-equipped.',
+    },
+    {
+        id: '4',
+        username: 'Chris Anderson',
+        rating: 3,
+        date: '2025-12-22',
+        comment: 'Nice place but a bit far from downtown.',
+    },
+    {
+        id: '5',
+        username: 'Lisa Taylor',
+        rating: 5,
+        date: '2025-12-15',
+        comment: 'Absolutely loved it! The beds were so comfortable.',
+    },
+];
 
 const AccommodationViewPage: React.FC = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -241,6 +310,10 @@ const AccommodationViewPage: React.FC = () => {
                 maxGuests={accommodation.maxGuests}
                 price={accommodation.price}
                 priceType={accommodation.priceType}
+            />
+            <RatingsSection
+                hostRatings={mockHostRatings}
+                accommodationRatings={mockAccommodationRatings}
             />
         </Box>
     );
