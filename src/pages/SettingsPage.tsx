@@ -41,7 +41,7 @@ const SettingsPage: React.FC = () => {
     useEffect(() => {
         if (user) {
             // Parse address field by comma (address, city, zip, country)
-            const addressParts = (user.address || '').split(',').map(part => part.trim());
+            const addressParts = (user.address || '').split(',').map((part: string) => part.trim());
             
             setPersonalDetails({
                 firstName: user.firstName || '',

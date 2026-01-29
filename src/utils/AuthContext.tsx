@@ -7,6 +7,7 @@ export interface User {
     firstName?: string;
     lastName?: string;
     role?: 'guest' | 'host';
+    address?: string;
 }
 
 export interface IAuthContext {
