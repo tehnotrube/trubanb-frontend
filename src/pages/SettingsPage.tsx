@@ -85,6 +85,11 @@ const SettingsPage: React.FC = () => {
         setSuccess(null);
     };
 
+    const handlePasswordChange = (field: string, value: string) => {
+        setPasswordData({ ...passwordData, [field]: value });
+        setError(null);
+    };
+
     const handleSavePersonalDetails = async () => {
         setLoading(true);
         setError(null);
