@@ -28,6 +28,8 @@ const SignInForm = () => {
         try {
             const res = await axios.post(`${environment}/api/users/auth/login`, {
                 emailOrUsername: username,
+            const res = await axios.post(`${environment}/api/users/auth/login`, {
+                emailOrUsername: username,
                 password,
             });
 
