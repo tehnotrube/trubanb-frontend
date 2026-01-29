@@ -178,6 +178,7 @@ const SignUpForm = () => {
                 type="email"
                 required
                 onChange={handleChange('email')}
+<<<<<<< HEAD
             />
 
             <TextField
@@ -213,24 +214,75 @@ const SignUpForm = () => {
                 variant="standard"
                 required
                 onChange={handleChange('country')}
+=======
+>>>>>>> f393aaf (feat: Reorganised sign up form)
             />
             <TextField
                 label="ZIP"
                 variant="standard"
                 required
                 onChange={handleChange('password')}
-                sx={{gridColumn: '1 / -1'}}
             />
-
             <TextField
                 label="Repeat Password"
                 variant="standard"
                 type="password"
                 required
                 onChange={handleChange('repeatPassword')}
-                sx={{gridColumn: '1 / -1'}}
             />
 
+            <TextField
+                label="Address"
+                variant="standard"
+                required
+                onChange={handleChange('address')}
+            />
+            <TextField
+                label="City"
+                variant="standard"
+                required
+                onChange={handleChange('city')}
+            />
+
+            <TextField
+                label="Country"
+                variant="standard"
+                required
+                onChange={handleChange('country')}
+            />
+            <TextField
+                label="ZIP"
+                variant="standard"
+                required
+                onChange={handleChange('zip')}
+            />
+
+<<<<<<< HEAD
+=======
+            <FormControl sx={{ gridColumn: '1 / -1', mt: 2 }}>
+                <FormLabel sx={{ mb: 1, color: 'text.primary' }}>I am registering as:</FormLabel>
+                <RadioGroup
+                    row
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value as 'guest' | 'host' })}
+                    sx={{ justifyContent: 'left' }}
+                >
+                    <FormControlLabel 
+                        value="guest" 
+                        control={<Radio />} 
+                        label="Guest (looking for accommodation)"
+                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
+                    />
+                    <FormControlLabel 
+                        value="host" 
+                        control={<Radio />} 
+                        label="Host (offering accommodation)"
+                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
+                    />
+                </RadioGroup>
+            </FormControl>
+
+>>>>>>> f393aaf (feat: Reorganised sign up form)
             <Button
                 type="submit"
                 variant="contained"
