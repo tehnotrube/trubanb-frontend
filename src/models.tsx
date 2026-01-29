@@ -1,5 +1,5 @@
 export type Accommodation = {
-    id: number;
+    id: string | number;
     name: string;
     location: string;
     image: string;
