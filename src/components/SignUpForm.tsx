@@ -20,11 +20,7 @@ import {AuthContext} from '../utils/AuthContext';
 
 const SignUpForm = () => {
     const navigate = useNavigate();
-<<<<<<< HEAD
     const { setUser, setAuthenticated, setRole } = useContext(AuthContext);
-=======
-    const { setUser, setAuthenticated } = useContext(AuthContext);
->>>>>>> bc8225d (feat: Connected login and register)
     const [form, setForm] = useState({
         name: '',
         surname: '',
@@ -66,10 +62,7 @@ const SignUpForm = () => {
                 firstName: form.name,
                 lastName: form.surname,
                 address: `${form.address}, ${form.city}, ${form.zip}, ${form.country}`,
-<<<<<<< HEAD
                 role: form.role,
-=======
->>>>>>> bc8225d (feat: Connected login and register)
             });
             
             // Store tokens
@@ -87,12 +80,9 @@ const SignUpForm = () => {
             if (setAuthenticated) {
                 setAuthenticated(true);
             }
-<<<<<<< HEAD
             if (setRole && res.data.user?.role) {
                 setRole(res.data.user.role);
             }
-=======
->>>>>>> bc8225d (feat: Connected login and register)
             
             navigate('/');
         } catch (err) {
