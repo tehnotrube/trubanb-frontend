@@ -218,31 +218,18 @@ const SignUpForm = () => {
                 label="ZIP"
                 variant="standard"
                 required
-                onChange={handleChange('zip')}
+                onChange={handleChange('password')}
+                sx={{gridColumn: '1 / -1'}}
             />
 
-            <FormControl sx={{ gridColumn: '1 / -1', mt: 2 }}>
-                <FormLabel sx={{ mb: 1, color: 'text.primary' }}>I am registering as:</FormLabel>
-                <RadioGroup
-                    row
-                    value={form.role}
-                    onChange={(e) => setForm({ ...form, role: e.target.value as 'guest' | 'host' })}
-                    sx={{ justifyContent: 'left' }}
-                >
-                    <FormControlLabel 
-                        value="guest" 
-                        control={<Radio />} 
-                        label="Guest (looking for accommodation)"
-                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
-                    />
-                    <FormControlLabel 
-                        value="host" 
-                        control={<Radio />} 
-                        label="Host (offering accommodation)"
-                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
-                    />
-                </RadioGroup>
-            </FormControl>
+            <TextField
+                label="Repeat Password"
+                variant="standard"
+                type="password"
+                required
+                onChange={handleChange('repeatPassword')}
+                sx={{gridColumn: '1 / -1'}}
+            />
 
             <Button
                 type="submit"
