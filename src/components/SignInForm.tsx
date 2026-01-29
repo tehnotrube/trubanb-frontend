@@ -14,7 +14,7 @@ import {AuthContext} from '../utils/AuthContext';
 
 const SignInForm = () => {
     const navigate = useNavigate();
-    const { setUser, setAuthenticated } = useContext(AuthContext);
+    const { setUser, setAuthenticated, setRole } = useContext(AuthContext);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -47,6 +47,9 @@ const SignInForm = () => {
             }
             if (setAuthenticated) {
                 setAuthenticated(true);
+            }
+            if (setRole && res.data.user?.role) {
+                setRole(res.data.user.role);
             }
             
             navigate('/');

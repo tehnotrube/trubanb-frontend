@@ -5,6 +5,11 @@ import {
     Typography,
     Alert,
     Link,
+    FormControl,
+    FormLabel,
+    RadioGroup,
+    FormControlLabel,
+    Radio,
 } from '@mui/material';
 import {useState, useContext} from 'react';
 import {alpha} from '@mui/material/styles';
@@ -15,7 +20,7 @@ import {AuthContext} from '../utils/AuthContext';
 
 const SignUpForm = () => {
     const navigate = useNavigate();
-    const { setUser, setAuthenticated } = useContext(AuthContext);
+    const { setUser, setAuthenticated, setRole } = useContext(AuthContext);
     const [form, setForm] = useState({
         name: '',
         surname: '',
@@ -27,6 +32,7 @@ const SignUpForm = () => {
         country: '',
         password: '',
         repeatPassword: '',
+        role: 'guest' as 'guest' | 'host',
     });
 
     const [loading, setLoading] = useState(false);
@@ -56,6 +62,7 @@ const SignUpForm = () => {
                 firstName: form.name,
                 lastName: form.surname,
                 address: `${form.address}, ${form.city}, ${form.zip}, ${form.country}`,
+                role: form.role,
             });
             
             // Store tokens
@@ -72,6 +79,9 @@ const SignUpForm = () => {
             }
             if (setAuthenticated) {
                 setAuthenticated(true);
+            }
+            if (setRole && res.data.user?.role) {
+                setRole(res.data.user.role);
             }
             
             navigate('/');
@@ -219,6 +229,28 @@ const SignUpForm = () => {
                 onChange={handleChange('repeatPassword')}
                 sx={{gridColumn: '1 / -1'}}
             />
+
+            <FormControl sx={{ gridColumn: '1 / -1', mt: 2 }}>
+                <FormLabel sx={{ mb: 1, color: 'text.primary' }}>I am registering as:</FormLabel>
+                <RadioGroup
+                    row
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value as 'guest' | 'host' })}
+                >
+                    <FormControlLabel 
+                        value="guest" 
+                        control={<Radio />} 
+                        label="Guest (looking for accommodation)"
+                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
+                    />
+                    <FormControlLabel 
+                        value="host" 
+                        control={<Radio />} 
+                        label="Host (offering accommodation)"
+                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
+                    />
+                </RadioGroup>
+            </FormControl>
 
             <Button
                 type="submit"

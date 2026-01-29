@@ -16,6 +16,7 @@ export interface IAuthContext {
     user: User | null;
     setUser?: (user: User | null) => void;
     setAuthenticated?: (authenticated: boolean) => void;
+    setRole?: (role: 'guest' | 'host') => void;
 }
 
 export const AuthContext = createContext<IAuthContext>({
@@ -24,5 +25,6 @@ export const AuthContext = createContext<IAuthContext>({
     role: 'guest',
     user: null,
     setUser: undefined,
-    setAuthenticated: undefined
+    setAuthenticated: undefined,
+    setRole: undefined
 });
