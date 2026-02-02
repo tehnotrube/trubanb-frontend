@@ -8,7 +8,7 @@ import {
 import AccommodationCard from "../components/AccommodationCard.tsx";
 import type {Accommodation} from "../models.tsx";
 import axios from 'axios';
-import { environment } from '../utils/environment.tsx';
+import { environment } from '../utils/Environment.tsx';
 
 
 
@@ -24,7 +24,17 @@ const SearchResults: React.FC = () => {
                 const response = await axios.get(`${environment}/api/accommodations`);
                 
                 // Transform backend data to frontend model
-                const transformedData: Accommodation[] = response.data.data.map((acc: any) => ({
+                const transformedData: Accommodation[] = response.data.data.map((acc: {
+                    id: string;
+                    name: string;
+                    location: string;
+                    photoUrls?: string[];
+                    minGuests: number;
+                    maxGuests: number;
+                    amenities: string[];
+                    basePrice: number;
+                    isPerUnit: boolean;
+                }) => ({
                     id: acc.id,
                     name: acc.name,
                     location: acc.location,
@@ -43,9 +53,9 @@ const SearchResults: React.FC = () => {
                 
                 setAccommodations(transformedData);
                 setLoading(false);
-            } catch (err: any) {
-                console.error('Error fetching accommodations:', err);
-                setError(err.response?.data?.message || 'Failed to load accommodations');
+            } catch (error) {
+                console.error('Error fetching accommodations:', error);
+                setError((error as {response?: {data?: {message?: string}}}).response?.data?.message || 'Failed to load accommodations');
                 setLoading(false);
             }
         };

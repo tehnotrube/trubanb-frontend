@@ -178,44 +178,6 @@ const SignUpForm = () => {
                 type="email"
                 required
                 onChange={handleChange('email')}
-<<<<<<< HEAD
-            />
-
-            <TextField
-                label="Password"
-                variant="standard"
-                type="password"
-                required
-                onChange={handleChange('password')}
-            />
-            <TextField
-                label="Repeat Password"
-                variant="standard"
-                type="password"
-                required
-                onChange={handleChange('repeatPassword')}
-            />
-
-            <TextField
-                label="Address"
-                variant="standard"
-                required
-                onChange={handleChange('address')}
-            />
-            <TextField
-                label="City"
-                variant="standard"
-                required
-                onChange={handleChange('city')}
-            />
-
-            <TextField
-                label="Country"
-                variant="standard"
-                required
-                onChange={handleChange('country')}
-=======
->>>>>>> f393aaf (feat: Reorganised sign up form)
             />
             <TextField
                 label="ZIP"
@@ -257,8 +219,6 @@ const SignUpForm = () => {
                 onChange={handleChange('zip')}
             />
 
-<<<<<<< HEAD
-=======
             <FormControl sx={{ gridColumn: '1 / -1', mt: 2 }}>
                 <FormLabel sx={{ mb: 1, color: 'text.primary' }}>I am registering as:</FormLabel>
                 <RadioGroup
@@ -282,7 +242,6 @@ const SignUpForm = () => {
                 </RadioGroup>
             </FormControl>
 
->>>>>>> f393aaf (feat: Reorganised sign up form)
             <Button
                 type="submit"
                 variant="contained"

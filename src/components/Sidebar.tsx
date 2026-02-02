@@ -41,7 +41,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({children}) => {
 
     const handleLogout = () => {
         localStorage.clear();
-        window.location.reload();
+        window.location.href = '/sign-in';
     };
 
     const goToSignIn = () => {
@@ -216,7 +216,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({children}) => {
                                 onClick={handleLogout}
                                 sx={{color: 'white', ml: 'auto'}}
                             >
-                                <LogoutIcon onClick={() => navigate('/sign-in')}/>
+                                <LogoutIcon />
                             </IconButton>
                         </Box>
                     ) : (

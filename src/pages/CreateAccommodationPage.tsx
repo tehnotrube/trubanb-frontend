@@ -11,7 +11,7 @@ import { Dayjs } from 'dayjs';
 import BasicInfoStep from "../components/BasicInfoStep.tsx";
 import AvailabilityStep from "../components/AvailabilityStep.tsx";
 import axios from 'axios';
-import { environment } from '../utils/environment.tsx';
+import { environment } from '../utils/Environment.tsx';
 import { useNavigate } from 'react-router-dom';
 
 export interface PriceDefinition {
@@ -147,7 +147,7 @@ const CreateAccommodationPage: React.FC = () => {
 
             const toIso = (date: Dayjs | null) => (date ? date.toDate().toISOString() : null);
 
-            const rulePromises: Promise<any>[] = [];
+            const rulePromises: Promise<{data: unknown}>[] = [];
 
             generalAvailability
                 .filter((entry) => entry.startDate && entry.endDate && entry.price)
@@ -169,7 +169,13 @@ const CreateAccommodationPage: React.FC = () => {
             extraRules
                 .filter((rule) => rule.startDate && rule.endDate)
                 .forEach((rule) => {
-                    const dto: any = {
+                    const dto: {
+                        startDate: string;
+                        endDate: string;
+                        periodType: string;
+                        overridePrice?: number;
+                        multiplier?: number;
+                    } = {
                         startDate: toIso(rule.startDate),
                         endDate: toIso(rule.endDate),
                         periodType: 'CUSTOM',
@@ -198,9 +204,9 @@ const CreateAccommodationPage: React.FC = () => {
 
             setIsSubmitting(false);
             navigate('/');
-        } catch (err: any) {
-            console.error('Error creating accommodation:', err);
-            setSubmitError(err.response?.data?.message || 'Failed to create accommodation');
+        } catch (error) {
+            console.error('Error creating accommodation:', error);
+            setSubmitError((error as {response?: {data?: {message?: string}}}).response?.data?.message || 'Failed to create accommodation');
             setIsSubmitting(false);
         }
     };
