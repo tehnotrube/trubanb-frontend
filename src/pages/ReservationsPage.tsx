@@ -110,10 +110,21 @@ export default function ReservationsPage() {
                                 }
                             })
                         ]);
-                        
+
+                        const reservationsData = reservationsResponse.data || [];
+                        const reservationsByRequestId = new Map(
+                            reservationsData
+                                .filter((res: {requestId?: string}) => res.requestId)
+                                .map((res: {requestId: string}) => [res.requestId, res])
+                        );
+
+                        const requestsData = (requestsResponse.data || []).filter(
+                            (req: {id: string}) => !reservationsByRequestId.has(req.id)
+                        );
+
                         // For requests, we need to fetch accommodation details
                         const requestsWithAccommodations = await Promise.all(
-                            (requestsResponse.data || []).map(async (req: {accommodationId: string}) => {
+                            requestsData.map(async (req: {accommodationId: string}) => {
                                 try {
                                     const accResponse = await axios.get(
                                         `${environment}/api/accommodations/${req.accommodationId}`
@@ -126,7 +137,7 @@ export default function ReservationsPage() {
                         );
                         
                         // Combine requests and confirmed reservations
-                        response = { data: [...requestsWithAccommodations, ...(reservationsResponse.data || [])] };
+                        response = { data: [...requestsWithAccommodations, ...reservationsData] };
                     } catch (error) {
                         console.error('Error fetching guest reservations:', error);
                         response = { data: [] };
@@ -134,14 +145,14 @@ export default function ReservationsPage() {
                 }
                 
                 // Transform API response to match component interface
-                const transformedReservations = response.data.map((res: {id: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number}) => ({
+                const transformedReservations = response.data.map((res: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number}) => ({
                     id: res.id,
                     accommodationName: res.accommodationName || res.accommodation?.name || 'Accommodation',
                     startDate: res.startDate,
                     endDate: res.endDate,
                     totalPrice: res.totalPrice || res.price || 0,
                     numberOfGuests: res.numberOfGuests || res.guests || 0,
-                    status: res.status?.toLowerCase() || 'pending',
+                    status: res.status?.toLowerCase() || (res.requestId ? 'approved' : 'pending'),
                     guestName: res.guestName || res.guestId || 'Guest',
                     guestCancellations: res.guestCancellationCount || res.guestCancellations || 0,
                 }));
@@ -239,16 +250,43 @@ export default function ReservationsPage() {
     };
 
     const handleHostRatingSubmit = (rating: number, comment?: string) => {
-        console.log('Host rating submitted:', {
-            reservationId: ratingDialog.reservationId,
-            rating,
-            comment
-        });
+        const submit = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to submit/update host rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                const payload = {
+                    reservationId: ratingDialog.reservationId,
+                    type: 'HOST' as const,
+                    score: rating,
+                    comment,
+                };
 
-        // Update or create host rating
-        if (ratingDialog.reservationId) {
+                await axios.post(`${environment}/api/ratings`, payload, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            } catch (error) {
+                const message = (error as {response?: {data?: {message?: string}}}).response?.data?.message || '';
+                if (message.includes('Rating already exists')) {
+                    const token = localStorage.getItem('accessToken');
+                    await axios.put(
+                        `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/HOST`,
+                        { score: rating, comment },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+                } else {
+                    console.error('Error submitting host rating:', error);
+                    alert('Failed to submit host rating');
+                    return;
+                }
+            }
+
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -256,20 +294,49 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void submit();
     };
 
     const handleAccommodationRatingSubmit = (rating: number, comment?: string) => {
-        console.log('Accommodation rating submitted:', {
-            reservationId: ratingDialog.reservationId,
-            rating,
-            comment
-        });
+        const submit = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to submit/update accommodation rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                const payload = {
+                    reservationId: ratingDialog.reservationId,
+                    type: 'ACCOMMODATION' as const,
+                    score: rating,
+                    comment,
+                };
 
-        // Update or create accommodation rating
-        if (ratingDialog.reservationId) {
+                await axios.post(`${environment}/api/ratings`, payload, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            } catch (error) {
+                const message = (error as {response?: {data?: {message?: string}}}).response?.data?.message || '';
+                if (message.includes('Rating already exists')) {
+                    const token = localStorage.getItem('accessToken');
+                    await axios.put(
+                        `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/ACCOMMODATION`,
+                        { score: rating, comment },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+                } else {
+                    console.error('Error submitting accommodation rating:', error);
+                    alert('Failed to submit accommodation rating');
+                    return;
+                }
+            }
+
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -277,18 +344,31 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void submit();
     };
 
     const handleHostRatingDelete = () => {
-        console.log('Host rating deleted:', {
-            reservationId: ratingDialog.reservationId
-        });
+        const remove = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to delete host rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                await axios.delete(
+                    `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/HOST`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+            } catch (error) {
+                console.error('Error deleting host rating:', error);
+                alert('Failed to delete host rating');
+                return;
+            }
 
-        // Remove host rating
-        if (ratingDialog.reservationId) {
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -296,18 +376,31 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void remove();
     };
 
     const handleAccommodationRatingDelete = () => {
-        console.log('Accommodation rating deleted:', {
-            reservationId: ratingDialog.reservationId
-        });
+        const remove = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to delete accommodation rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                await axios.delete(
+                    `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/ACCOMMODATION`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+            } catch (error) {
+                console.error('Error deleting accommodation rating:', error);
+                alert('Failed to delete accommodation rating');
+                return;
+            }
 
-        // Remove accommodation rating
-        if (ratingDialog.reservationId) {
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -315,7 +408,9 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void remove();
     };
 
     const formatDate = (dateStr: string) => {
@@ -331,6 +426,7 @@ export default function ReservationsPage() {
             case 'pending':
                 return 'warning';
             case 'accepted':
+            case 'approved':
                 return 'success';
             case 'rejected':
             case 'cancelled':
@@ -347,7 +443,7 @@ export default function ReservationsPage() {
     const canRate = (reservation: Reservation) => {
         return (
             role === 'guest' &&
-            reservation.status === 'accepted' &&
+            (reservation.status === 'accepted' || reservation.status === 'approved') &&
             isPastReservation(reservation.endDate)
         );
     };
