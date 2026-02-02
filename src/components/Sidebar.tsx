@@ -30,8 +30,8 @@ interface SidebarLayoutProps {
 
 const SidebarLayout: React.FC<SidebarLayoutProps> = ({children}) => {
     //TODO: Pull data from jwt/API
-    const {isAuthenticated, role} = useContext(AuthContext);
-    const username = 'vukasinb7';
+    const {isAuthenticated, role, user} = useContext(AuthContext);
+    const username = user?.username || 'guest';
     const profilePic = '';
     const location = useLocation();
     const navigate = useNavigate();

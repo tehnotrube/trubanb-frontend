@@ -1,4 +1,4 @@
-import React, {useContext, useState} from 'react';
+import React, {useContext, useState, useEffect} from 'react';
 import {
     Box,
     Card,
@@ -13,25 +13,48 @@ import {
     DialogContent,
     DialogContentText,
     DialogActions,
+    Alert,
 } from '@mui/material';
 import {AuthContext} from "../utils/AuthContext.tsx";
+import axios, {AxiosError} from "axios";
+import {environment} from "../utils/Environment.tsx";
 
 const SettingsPage: React.FC = () => {
-    // TODO: Pull data from jwt/API
-    const { role } = useContext(AuthContext);
+    const { role, user } = useContext(AuthContext);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
 
     // Personal Details State
     const [personalDetails, setPersonalDetails] = useState({
-        name: 'Vukasin',
-        surname: 'Bogdanovic',
-        username: 'vukasinb7',
-        email: 'vukasinb7@example.com',
-        address: 'Kneza Milosa 10',
-        city: 'Belgrade',
-        zip: '11000',
-        country: 'Serbia',
+        firstName: '',
+        lastName: '',
+        username: '',
+        email: '',
+        address: '',
+        city: '',
+        zip: '',
+        country: '',
     });
+
+    useEffect(() => {
+        if (user) {
+            // Parse address field by comma (address, city, zip, country)
+            const addressParts = (user.address || '').split(',').map((part: string) => part.trim());
+            
+            setPersonalDetails({
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                username: user.username || '',
+                email: user.email || '',
+                address: addressParts[0] || '',
+                city: addressParts[1] || '',
+                zip: addressParts[2] || '',
+                country: addressParts[3] || '',
+            });
+        }
+    }, [user]);
 
     // Password Change State
     const [passwordData, setPasswordData] = useState({
@@ -58,25 +81,86 @@ const SettingsPage: React.FC = () => {
 
     const handlePersonalDetailsChange = (field: string, value: string) => {
         setPersonalDetails({ ...personalDetails, [field]: value });
+        setError(null);
+        setSuccess(null);
     };
 
     const handlePasswordChange = (field: string, value: string) => {
         setPasswordData({ ...passwordData, [field]: value });
+        setError(null);
     };
 
-    const handleSavePersonalDetails = () => {
-        console.log('Saving personal details:', personalDetails);
-        // TODO: API call to save personal details
+    const handleSavePersonalDetails = async () => {
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const token = localStorage.getItem('accessToken');
+            // Combine address fields with commas
+            const fullAddress = [
+                personalDetails.address,
+                personalDetails.city,
+                personalDetails.zip,
+                personalDetails.country
+            ].filter(part => part.trim()).join(', ');
+
+            await axios.put(`${environment}/api/users/profile`, {
+                firstName: personalDetails.firstName,
+                lastName: personalDetails.lastName,
+                email: personalDetails.email,
+                address: fullAddress,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setSuccess('Profile updated successfully!');
+        } catch (err) {
+            const message = err instanceof AxiosError
+                ? err.response?.data?.message
+                : 'Failed to update profile';
+            setError(message);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            alert('Passwords do not match!');
+            setError('Passwords do not match!');
             return;
         }
-        console.log('Changing password');
-        // TODO: API call to change password
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+        if (!passwordData.currentPassword || !passwordData.newPassword) {
+            setError('Please fill in all password fields');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const token = localStorage.getItem('accessToken');
+            await axios.put(`${environment}/api/users/credentials`, {
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setSuccess('Password changed successfully!');
+            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (err) {
+            const message = err instanceof AxiosError
+                ? err.response?.data?.message
+                : 'Failed to change password';
+            setError(message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleGuestNotificationToggle = (field: keyof typeof guestNotifications) => {
@@ -99,6 +183,17 @@ const SettingsPage: React.FC = () => {
                 Settings
             </Typography>
 
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+            )}
+            {success && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                    {success}
+                </Alert>
+            )}
+
             <Box sx={{
                 display: 'flex',
                 flexDirection: { xs: 'column', md: 'row' },
@@ -115,24 +210,24 @@ const SettingsPage: React.FC = () => {
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <TextField
-                                label="Name"
+                                label="First Name"
                                 variant="standard"
-                                value={personalDetails.name}
-                                onChange={(e) => handlePersonalDetailsChange('name', e.target.value)}
+                                value={personalDetails.firstName}
+                                onChange={(e) => handlePersonalDetailsChange('firstName', e.target.value)}
                                 fullWidth
                             />
                             <TextField
-                                label="Surname"
+                                label="Last Name"
                                 variant="standard"
-                                value={personalDetails.surname}
-                                onChange={(e) => handlePersonalDetailsChange('surname', e.target.value)}
+                                value={personalDetails.lastName}
+                                onChange={(e) => handlePersonalDetailsChange('lastName', e.target.value)}
                                 fullWidth
                             />
                             <TextField
                                 label="Username"
                                 variant="standard"
                                 value={personalDetails.username}
-                                onChange={(e) => handlePersonalDetailsChange('username', e.target.value)}
+                                disabled
                                 fullWidth
                             />
                             <TextField
@@ -158,7 +253,7 @@ const SettingsPage: React.FC = () => {
                                 fullWidth
                             />
                             <TextField
-                                label="ZIP"
+                                label="ZIP Code"
                                 variant="standard"
                                 value={personalDetails.zip}
                                 onChange={(e) => handlePersonalDetailsChange('zip', e.target.value)}
@@ -175,9 +270,10 @@ const SettingsPage: React.FC = () => {
                             <Button
                                 variant="contained"
                                 onClick={handleSavePersonalDetails}
-                                sx={{ mt: 2, color: 'white' }}
+                                disabled={loading}
+                                sx={{ mt: 2 }}
                             >
-                                Save Changes
+                                {loading ? 'Saving...' : 'Save Changes'}
                             </Button>
                         </Box>
                     </CardContent>
@@ -219,9 +315,10 @@ const SettingsPage: React.FC = () => {
                             <Button
                                 variant="contained"
                                 onClick={handleChangePassword}
-                                sx={{ mt: 2, color: 'white' }}
+                                disabled={loading}
+                                sx={{ mt: 2 }}
                             >
-                                Change Password
+                                {loading ? 'Changing...' : 'Change Password'}
                             </Button>
                         </Box>
                     </CardContent>

@@ -5,13 +5,22 @@ import {
     Typography,
     Alert,
     Link,
+    FormControl,
+    FormLabel,
+    RadioGroup,
+    FormControlLabel,
+    Radio,
 } from '@mui/material';
-import {useState} from 'react';
+import {useState, useContext} from 'react';
 import {alpha} from '@mui/material/styles';
 import axios, {AxiosError} from 'axios';
-import {Link as RouterLink} from 'react-router-dom';
+import {Link as RouterLink, useNavigate} from 'react-router-dom';
+import {environment} from '../utils/Environment';
+import {AuthContext} from '../utils/AuthContext';
 
 const SignUpForm = () => {
+    const navigate = useNavigate();
+    const { setUser, setAuthenticated, setRole } = useContext(AuthContext);
     const [form, setForm] = useState({
         name: '',
         surname: '',
@@ -23,6 +32,7 @@ const SignUpForm = () => {
         country: '',
         password: '',
         repeatPassword: '',
+        role: 'guest' as 'guest' | 'host',
     });
 
     const [loading, setLoading] = useState(false);
@@ -45,17 +55,36 @@ const SignUpForm = () => {
 
         setLoading(true);
         try {
-            await axios.post('/api/user/register', {
-                name: form.name,
-                surname: form.surname,
+            const res = await axios.post(`${environment}/api/users/auth/register`, {
                 username: form.username,
                 email: form.email,
-                address: form.address,
-                city: form.city,
-                zip: form.zip,
-                country: form.country,
                 password: form.password,
+                firstName: form.name,
+                lastName: form.surname,
+                address: `${form.address}, ${form.city}, ${form.zip}, ${form.country}`,
+                role: form.role,
             });
+            
+            // Store tokens
+            if (res.data.accessToken) {
+                localStorage.setItem('accessToken', res.data.accessToken);
+            }
+            if (res.data.refreshToken) {
+                localStorage.setItem('refreshToken', res.data.refreshToken);
+            }
+            
+            // Update auth context immediately
+            if (setUser && res.data.user) {
+                setUser(res.data.user);
+            }
+            if (setAuthenticated) {
+                setAuthenticated(true);
+            }
+            if (setRole && res.data.user?.role) {
+                setRole(res.data.user.role);
+            }
+            
+            navigate('/');
         } catch (err) {
             const message =
                 err instanceof AxiosError
@@ -142,45 +171,13 @@ const SignUpForm = () => {
                 variant="standard"
                 required
                 onChange={handleChange('username')}
-                sx={{gridColumn: '1 / -1'}}
             />
-
             <TextField
                 label="Email"
                 variant="standard"
                 type="email"
                 required
                 onChange={handleChange('email')}
-                sx={{gridColumn: '1 / -1'}}
-            />
-
-            <TextField
-                label="Address"
-                variant="standard"
-                required
-                onChange={handleChange('address')}
-                sx={{gridColumn: '1 / -1'}}
-            />
-
-            <TextField
-                label="City"
-                variant="standard"
-                required
-                onChange={handleChange('city')}
-            />
-            <TextField
-                label="ZIP"
-                variant="standard"
-                required
-                onChange={handleChange('zip')}
-            />
-
-            <TextField
-                label="Country"
-                variant="standard"
-                required
-                onChange={handleChange('country')}
-                sx={{gridColumn: '1 / -1'}}
             />
 
             <TextField
@@ -189,17 +186,63 @@ const SignUpForm = () => {
                 type="password"
                 required
                 onChange={handleChange('password')}
-                sx={{gridColumn: '1 / -1'}}
             />
-
             <TextField
                 label="Repeat Password"
                 variant="standard"
                 type="password"
                 required
                 onChange={handleChange('repeatPassword')}
-                sx={{gridColumn: '1 / -1'}}
             />
+
+            <TextField
+                label="Address"
+                variant="standard"
+                required
+                onChange={handleChange('address')}
+            />
+            <TextField
+                label="City"
+                variant="standard"
+                required
+                onChange={handleChange('city')}
+            />
+
+            <TextField
+                label="Country"
+                variant="standard"
+                required
+                onChange={handleChange('country')}
+            />
+            <TextField
+                label="ZIP"
+                variant="standard"
+                required
+                onChange={handleChange('zip')}
+            />
+
+            <FormControl sx={{ gridColumn: '1 / -1', mt: 2 }}>
+                <FormLabel sx={{ mb: 1, color: 'text.primary' }}>I am registering as:</FormLabel>
+                <RadioGroup
+                    row
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value as 'guest' | 'host' })}
+                    sx={{ justifyContent: 'left' }}
+                >
+                    <FormControlLabel 
+                        value="guest" 
+                        control={<Radio />} 
+                        label="Guest (looking for accommodation)"
+                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
+                    />
+                    <FormControlLabel 
+                        value="host" 
+                        control={<Radio />} 
+                        label="Host (offering accommodation)"
+                        sx={{ '& .MuiFormControlLabel-label': { color: 'text.primary' } }}
+                    />
+                </RadioGroup>
+            </FormControl>
 
             <Button
                 type="submit"

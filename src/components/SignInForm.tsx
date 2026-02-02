@@ -6,11 +6,15 @@ import {
     Link,
     Alert,
 } from '@mui/material';
-import {Link as RouterLink} from 'react-router-dom';
-import {useState} from 'react';
+import {Link as RouterLink, useNavigate} from 'react-router-dom';
+import {useState, useContext} from 'react';
 import axios, {AxiosError} from "axios";
+import {environment} from '../utils/Environment';
+import {AuthContext} from '../utils/AuthContext';
 
 const SignInForm = () => {
+    const navigate = useNavigate();
+    const { setUser, setAuthenticated, setRole } = useContext(AuthContext);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -22,12 +26,33 @@ const SignInForm = () => {
         setLoading(true);
 
         try {
-            const res = await axios.post('/api/user/auth', {
-                username,
+            const res = await axios.post(`${environment}/api/users/auth/login`, {
+                emailOrUsername: username,
                 password,
             });
 
             console.log('Auth success:', res.data);
+            
+            // Store tokens
+            if (res.data.accessToken) {
+                localStorage.setItem('accessToken', res.data.accessToken);
+            }
+            if (res.data.refreshToken) {
+                localStorage.setItem('refreshToken', res.data.refreshToken);
+            }
+            
+            // Update auth context immediately
+            if (setUser && res.data.user) {
+                setUser(res.data.user);
+            }
+            if (setAuthenticated) {
+                setAuthenticated(true);
+            }
+            if (setRole && res.data.user?.role) {
+                setRole(res.data.user.role);
+            }
+            
+            navigate('/');
         } catch (err) {
             const message =
                 err instanceof AxiosError
