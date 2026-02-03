@@ -41,19 +41,26 @@ const AccommodationViewPage: React.FC = () => {
     const [accommodation, setAccommodation] = useState<{
         id: string;
         name: string;
-        location: string;
+        address: string;
+        city: string;
+        zip: string;
+        country: string;
+        hostId: string;
+        amenities: {
+            wifi: boolean;
+            ac: boolean;
+            parking: boolean;
+        };
         minGuests: number;
         maxGuests: number;
-        amenities: string[];
-        photoUrls?: string[];
-        basePrice: number;
-        isPerUnit: boolean;
-        hostId: string;
+        price: number;
+        priceType: 'accommodation' | 'person';
+        images: string[];
     } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [hostRatings, setHostRatings] = useState<{rating: number; comment?: string}[]>([]);
-    const [accommodationRatings, setAccommodationRatings] = useState<{rating: number; comment?: string}[]>([]);
+    const [hostRatings, setHostRatings] = useState<{id: string; username: string; rating: number; date: string; comment?: string}[]>([]);
+    const [accommodationRatings, setAccommodationRatings] = useState<{id: string; username: string; rating: number; date: string; comment?: string}[]>([]);
 
     useEffect(() => {
         const fetchAccommodation = async () => {
@@ -64,7 +71,25 @@ const AccommodationViewPage: React.FC = () => {
                 // Parse location: "address, city, zip, country"
                 const locationParts = acc.location.split(',').map((part: string) => part.trim());
                 
-                const transformedData = {
+                const transformedData: {
+                    id: string;
+                    name: string;
+                    address: string;
+                    city: string;
+                    zip: string;
+                    country: string;
+                    hostId: string;
+                    amenities: {
+                        wifi: boolean;
+                        ac: boolean;
+                        parking: boolean;
+                    };
+                    minGuests: number;
+                    maxGuests: number;
+                    price: number;
+                    priceType: 'accommodation' | 'person';
+                    images: string[];
+                } = {
                     id: acc.id,
                     name: acc.name,
                     address: locationParts[0] || '',
@@ -136,12 +161,14 @@ const AccommodationViewPage: React.FC = () => {
     }, [id]);
 
     const handleNextImage = () => {
+        if (!accommodation) return;
         setCurrentImageIndex((prev) =>
             prev === accommodation.images.length - 1 ? 0 : prev + 1
         );
     };
 
     const handlePrevImage = () => {
+        if (!accommodation) return;
         setCurrentImageIndex((prev) =>
             prev === 0 ? accommodation.images.length - 1 : prev - 1
         );

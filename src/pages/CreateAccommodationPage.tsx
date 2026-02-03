@@ -145,7 +145,10 @@ const CreateAccommodationPage: React.FC = () => {
                 );
             }
 
-            const toIso = (date: Dayjs | null) => (date ? date.toDate().toISOString() : null);
+            const toIso = (date: Dayjs | null): string => {
+                if (!date) throw new Error('Date is required');
+                return date.toDate().toISOString();
+            };
 
             const rulePromises: Promise<{data: unknown}>[] = [];
 

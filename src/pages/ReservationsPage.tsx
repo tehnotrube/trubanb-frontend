@@ -443,7 +443,7 @@ export default function ReservationsPage() {
     const canRate = (reservation: Reservation) => {
         return (
             role === 'guest' &&
-            (reservation.status === 'accepted' || reservation.status === 'approved') &&
+            reservation.status === 'accepted' &&
             isPastReservation(reservation.endDate)
         );
     };
