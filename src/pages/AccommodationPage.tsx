@@ -2,7 +2,7 @@
 // AccommodationViewPage.tsx - Main Page Component
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -11,7 +11,7 @@ import {
     Chip,
     Grid,
     Button,
-
+    CircularProgress,
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -25,104 +25,12 @@ import { Dayjs } from 'dayjs';
 import ImageGallery from "../components/ImageGallery.tsx";
 import ReservationDialog from '../components/ReservationDialog.tsx';
 import RatingsSection from "../components/RatingsSection.tsx";
-
-// Mock data - replace with API call
-const mockAccommodation = {
-    id: 1,
-    name: "Luxury Mountain Retreat",
-    address: "123 Alpine Way",
-    city: "Aspen",
-    country: "Colorado, USA",
-    zip: "81611",
-    amenities: {
-        wifi: true,
-        ac: true,
-        parking: true,
-    },
-    minGuests: 2,
-    maxGuests: 8,
-    price: 280,
-    priceType: 'accommodation' as 'accommodation' | 'person', // or 'person'
-    images: [
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
-    ],
-};
-
-const mockHostRatings = [
-    {
-        id: '1',
-        username: 'Sarah Johnson',
-        rating: 5,
-        date: '2026-01-15',
-        comment: 'Excellent host! Very responsive and accommodating.',
-    },
-    {
-        id: '2',
-        username: 'Mike Chen',
-        rating: 4,
-        date: '2026-01-10',
-        comment: 'Great communication and helpful with local recommendations.',
-    },
-    {
-        id: '3',
-        username: 'Emily Rodriguez',
-        rating: 5,
-        date: '2025-12-28',
-        comment: 'The host went above and beyond to make our stay comfortable.',
-    },
-    {
-        id: '4',
-        username: 'David Thompson',
-        rating: 4,
-        date: '2025-12-20',
-    },
-];
-
-const mockAccommodationRatings = [
-    {
-        id: '1',
-        username: 'Jessica Martinez',
-        rating: 5,
-        date: '2026-01-18',
-        comment: 'Beautiful property with stunning views. Everything was spotless!',
-    },
-    {
-        id: '2',
-        username: 'Robert Williams',
-        rating: 4,
-        date: '2026-01-12',
-        comment: 'Great location and amenities. Would definitely stay again.',
-    },
-    {
-        id: '3',
-        username: 'Amanda Brown',
-        rating: 5,
-        date: '2026-01-05',
-        comment: 'Perfect for a family vacation. The kitchen was well-equipped.',
-    },
-    {
-        id: '4',
-        username: 'Chris Anderson',
-        rating: 3,
-        date: '2025-12-22',
-        comment: 'Nice place but a bit far from downtown.',
-    },
-    {
-        id: '5',
-        username: 'Lisa Taylor',
-        rating: 5,
-        date: '2025-12-15',
-        comment: 'Absolutely loved it! The beds were so comfortable.',
-    },
-];
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import { environment } from '../utils/Environment.tsx';
 
 const AccommodationViewPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [reservationDialogOpen, setReservationDialogOpen] = useState(false);
     const [reservationData, setReservationData] = useState({
@@ -130,26 +38,196 @@ const AccommodationViewPage: React.FC = () => {
         endDate: null as Dayjs | null,
         guests: '2',
     });
+    const [accommodation, setAccommodation] = useState<{
+        id: string;
+        name: string;
+        address: string;
+        city: string;
+        zip: string;
+        country: string;
+        hostId: string;
+        amenities: {
+            wifi: boolean;
+            ac: boolean;
+            parking: boolean;
+        };
+        minGuests: number;
+        maxGuests: number;
+        price: number;
+        priceType: 'accommodation' | 'person';
+        images: string[];
+    } | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [hostRatings, setHostRatings] = useState<{id: string; username: string; rating: number; date: string; comment?: string}[]>([]);
+    const [accommodationRatings, setAccommodationRatings] = useState<{id: string; username: string; rating: number; date: string; comment?: string}[]>([]);
 
-    const accommodation = mockAccommodation; // TODO: Replace with API call
+    useEffect(() => {
+        const fetchAccommodation = async () => {
+            try {
+                const response = await axios.get(`${environment}/api/accommodations/${id}`);
+                const acc = response.data;
+                
+                // Parse location: "address, city, zip, country"
+                const locationParts = acc.location.split(',').map((part: string) => part.trim());
+                
+                const transformedData: {
+                    id: string;
+                    name: string;
+                    address: string;
+                    city: string;
+                    zip: string;
+                    country: string;
+                    hostId: string;
+                    amenities: {
+                        wifi: boolean;
+                        ac: boolean;
+                        parking: boolean;
+                    };
+                    minGuests: number;
+                    maxGuests: number;
+                    price: number;
+                    priceType: 'accommodation' | 'person';
+                    images: string[];
+                } = {
+                    id: acc.id,
+                    name: acc.name,
+                    address: locationParts[0] || '',
+                    city: locationParts[1] || '',
+                    zip: locationParts[2] || '',
+                    country: locationParts[3] || '',
+                    hostId: acc.hostId,
+                    amenities: {
+                        wifi: acc.amenities.includes('WiFi'),
+                        ac: acc.amenities.includes('AC') || acc.amenities.includes('Air Conditioning'),
+                        parking: acc.amenities.includes('Parking'),
+                    },
+                    minGuests: acc.minGuests,
+                    maxGuests: acc.maxGuests,
+                    price: Number(acc.basePrice),
+                    priceType: acc.isPerUnit ? 'accommodation' : 'person',
+                    images: acc.photoUrls && acc.photoUrls.length > 0
+                        ? acc.photoUrls
+                        : ["https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop"],
+                };
+                
+                setAccommodation(transformedData);
+                
+                // Fetch accommodation ratings
+                try {
+                    const ratingsRes = await axios.get(`${environment}/api/ratings/target/${acc.id}`);
+                    const ratings = ratingsRes.data.ratings.map((r: {id: string; guestId: string; score: number; createdAt: string; comment?: string}) => ({
+                        id: r.id,
+                        username: r.guestId,
+                        rating: r.score,
+                        date: r.createdAt,
+                        comment: r.comment,
+                    }));
+                    setAccommodationRatings(ratings);
+                } catch (ratingsErr) {
+                    console.warn('Could not fetch accommodation ratings:', ratingsErr);
+                    setAccommodationRatings([]);
+                }
+                
+                // Fetch host ratings
+                if (acc.hostId) {
+                    try {
+                        const hostRatingsRes = await axios.get(`${environment}/api/ratings/target/${acc.hostId}`);
+                        const hostRatings = hostRatingsRes.data.ratings.map((r: {id: string; guestId: string; score: number; createdAt: string; comment?: string}) => ({
+                            id: r.id,
+                            username: r.guestId,
+                            rating: r.score,
+                            date: r.createdAt,
+                            comment: r.comment,
+                        }));
+                        setHostRatings(hostRatings);
+                    } catch (hostRatingsErr) {
+                        console.warn('Could not fetch host ratings:', hostRatingsErr);
+                        setHostRatings([]);
+                    }
+                }
+                
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching accommodation:', error);
+                setError((error as {response?: {data?: {message?: string}}}).response?.data?.message || 'Failed to load accommodation');
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchAccommodation();
+        }
+    }, [id]);
 
     const handleNextImage = () => {
+        if (!accommodation) return;
         setCurrentImageIndex((prev) =>
             prev === accommodation.images.length - 1 ? 0 : prev + 1
         );
     };
 
     const handlePrevImage = () => {
+        if (!accommodation) return;
         setCurrentImageIndex((prev) =>
             prev === 0 ? accommodation.images.length - 1 : prev - 1
         );
     };
 
-    const handleReservationSubmit = () => {
-        console.log('Reservation data:', reservationData);
-        // TODO: API call to create reservation
-        setReservationDialogOpen(false);
+    const handleReservationSubmit = async () => {
+        try {
+            if (!accommodation || !reservationData.startDate || !reservationData.endDate) {
+                alert('Please fill in all reservation details');
+                return;
+            }
+
+            const payload = {
+                accommodationId: accommodation.id,
+                startDate: reservationData.startDate.toISOString(),
+                endDate: reservationData.endDate.toISOString(),
+                numberOfGuests: parseInt(reservationData.guests),
+            };
+
+            const response = await axios.post(`${environment}/api/reservations/requests`, payload, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('Reservation created:', response.data);
+            alert('Reservation request submitted successfully!');
+            setReservationDialogOpen(false);
+            // Reset form
+            setReservationData({
+                startDate: null,
+                endDate: null,
+                guests: '2',
+            });
+        } catch (error) {
+            console.error('Error creating reservation:', error);
+            const errorMessage = (error as {response?: {data?: {message?: string}}}).response?.data?.message || 'Failed to create reservation';
+            alert(errorMessage);
+        }
     };
+
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error || !accommodation) {
+        return (
+            <Box>
+                <Typography variant="h6" color="error">
+                    {error || 'Accommodation not found'}
+                </Typography>
+            </Box>
+        );
+    }
 
     return (
         <Box>
@@ -312,8 +390,8 @@ const AccommodationViewPage: React.FC = () => {
                 priceType={accommodation.priceType}
             />
             <RatingsSection
-                hostRatings={mockHostRatings}
-                accommodationRatings={mockAccommodationRatings}
+                hostRatings={hostRatings}
+                accommodationRatings={accommodationRatings}
             />
         </Box>
     );

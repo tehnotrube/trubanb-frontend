@@ -32,7 +32,7 @@ const AccommodationCard: React.FC<AccommodationCardProps> = ({ accommodation }) 
             }
 
         }}
-        onClick={()=>navigate(`/accommodation/1`)}>
+        onClick={()=>navigate(`/accommodation/${accommodation.id}`)}>
             <CardMedia
                 component="img"
                 height="180"

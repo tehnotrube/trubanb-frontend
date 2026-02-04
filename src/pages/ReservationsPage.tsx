@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {useContext, useState, useEffect} from 'react';
 import {
     Box,
     Card,
@@ -14,7 +14,9 @@ import {
     Stack,
     Divider,
     Avatar,
-    Container
+    Container,
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import {
     CalendarToday,
@@ -28,6 +30,8 @@ import {
     StarHalf
 } from '@mui/icons-material';
 import {AuthContext} from "../utils/AuthContext.tsx";
+import axios from 'axios';
+import { environment } from '../utils/Environment.tsx';
 import RatingDialog from '../components/RatingDialog.tsx';
 
 interface RatingData {
@@ -49,57 +53,11 @@ interface Reservation {
     accommodationRating?: RatingData;
 }
 
-const mockReservations: Reservation[] = [
-    {
-        id: '1',
-        accommodationName: 'Cozy Mountain Cabin',
-        startDate: '2026-02-15',
-        endDate: '2026-02-20',
-        totalPrice: 850,
-        numberOfGuests: 4,
-        status: 'pending',
-        guestName: 'John Smith',
-        guestCancellations: 2,
-    },
-    {
-        id: '2',
-        accommodationName: 'Beachfront Villa',
-        startDate: '2026-03-01',
-        endDate: '2026-03-07',
-        totalPrice: 1500,
-        numberOfGuests: 6,
-        status: 'pending',
-        guestName: 'Sarah Johnson',
-        guestCancellations: 0,
-    },
-    {
-        id: '3',
-        accommodationName: 'Urban Loft',
-        startDate: '2025-12-10',
-        endDate: '2025-12-12',
-        totalPrice: 320,
-        numberOfGuests: 2,
-        status: 'accepted',
-        guestName: 'Mike Davis',
-        guestCancellations: 1,
-        hostRating: { rating: 5, comment: 'Great host!' },
-    },
-    {
-        id: '4',
-        accommodationName: 'Lake House Retreat',
-        startDate: '2026-04-05',
-        endDate: '2026-04-10',
-        totalPrice: 975,
-        numberOfGuests: 5,
-        status: 'pending',
-        guestName: 'Emily Brown',
-        guestCancellations: 3,
-    }
-];
-
 export default function ReservationsPage() {
     const {role} = useContext(AuthContext)
-    const [reservations, setReservations] = useState<Reservation[]>(mockReservations);
+    const [reservations, setReservations] = useState<Reservation[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
         action: 'cancel' | 'accept' | 'reject' | null;
@@ -117,6 +75,102 @@ export default function ReservationsPage() {
         reservationId: null
     });
 
+    useEffect(() => {
+        const fetchReservations = async () => {
+            try {
+                setLoading(true);
+                const token = localStorage.getItem('accessToken');
+                let response;
+
+                if (role === 'host') {
+                    // For hosts, fetch pending reservation requests
+                    try {
+                        response = await axios.get(`${environment}/api/reservations/requests/pending`, {
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            }
+                        });
+                    } catch {
+                        // If the endpoint doesn't exist, try to fetch accommodations and then requests
+                        console.warn('Could not fetch pending requests directly, trying alternative endpoint');
+                        response = { data: [] };
+                    }
+                } else {
+                    // For guests, fetch both requests and confirmed reservations
+                    try {
+                        const [requestsResponse, reservationsResponse] = await Promise.all([
+                            axios.get(`${environment}/api/reservations/requests`, {
+                                headers: {
+                                    Authorization: `Bearer ${token}`
+                                }
+                            }),
+                            axios.get(`${environment}/api/reservations`, {
+                                headers: {
+                                    Authorization: `Bearer ${token}`
+                                }
+                            })
+                        ]);
+
+                        const reservationsData = reservationsResponse.data || [];
+                        const reservationsByRequestId = new Map(
+                            reservationsData
+                                .filter((res: {requestId?: string}) => res.requestId)
+                                .map((res: {requestId: string}) => [res.requestId, res])
+                        );
+
+                        const requestsData = (requestsResponse.data || []).filter(
+                            (req: {id: string}) => !reservationsByRequestId.has(req.id)
+                        );
+
+                        // For requests, we need to fetch accommodation details
+                        const requestsWithAccommodations = await Promise.all(
+                            requestsData.map(async (req: {accommodationId: string}) => {
+                                try {
+                                    const accResponse = await axios.get(
+                                        `${environment}/api/accommodations/${req.accommodationId}`
+                                    );
+                                    return { ...req, accommodationName: accResponse.data.name };
+                                } catch {
+                                    return { ...req, accommodationName: 'Accommodation' };
+                                }
+                            })
+                        );
+                        
+                        // Combine requests and confirmed reservations
+                        response = { data: [...requestsWithAccommodations, ...reservationsData] };
+                    } catch (error) {
+                        console.error('Error fetching guest reservations:', error);
+                        response = { data: [] };
+                    }
+                }
+                
+                // Transform API response to match component interface
+                const transformedReservations = response.data.map((res: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number}) => ({
+                    id: res.id,
+                    accommodationName: res.accommodationName || res.accommodation?.name || 'Accommodation',
+                    startDate: res.startDate,
+                    endDate: res.endDate,
+                    totalPrice: res.totalPrice || res.price || 0,
+                    numberOfGuests: res.numberOfGuests || res.guests || 0,
+                    status: res.status?.toLowerCase() || (res.requestId ? 'approved' : 'pending'),
+                    guestName: res.guestName || res.guestId || 'Guest',
+                    guestCancellations: res.guestCancellationCount || res.guestCancellations || 0,
+                }));
+                
+                setReservations(transformedReservations);
+                setError(null);
+            } catch (error) {
+                console.error('Error fetching reservations:', error);
+                setError((error as {response?: {data?: {message?: string}}}).response?.data?.message || 'Failed to load reservations');
+                setReservations([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReservations();
+    }, [role]);
+
     const openConfirmDialog = (action: 'cancel' | 'accept' | 'reject', reservationId: string) => {
         setConfirmDialog({ open: true, action, reservationId });
     };
@@ -133,38 +187,106 @@ export default function ReservationsPage() {
         setRatingDialog({ open: false, reservationId: null });
     };
 
-    const handleConfirmAction = () => {
+    const handleConfirmAction = async () => {
         if (confirmDialog.reservationId && confirmDialog.action) {
-            setReservations(prev =>
-                prev.map(res =>
-                    res.id === confirmDialog.reservationId
-                        ? {
-                            ...res,
-                            status:
-                                confirmDialog.action === 'cancel'
-                                    ? 'cancelled'
-                                    : confirmDialog.action === 'accept'
-                                        ? 'accepted'
-                                        : 'rejected'
+            try {
+                const reservationId = confirmDialog.reservationId;
+                const action = confirmDialog.action;
+                
+                let endpoint = '';
+                
+                if (action === 'cancel') {
+                    // Guest cancelling their reservation
+                    endpoint = `${environment}/api/reservations/${reservationId}`;
+                    await axios.delete(endpoint, {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
                         }
-                        : res
-                )
-            );
+                    });
+                } else if (action === 'accept') {
+                    // Host approving a request
+                    endpoint = `${environment}/api/reservations/requests/${reservationId}/approve`;
+                    await axios.put(endpoint, {}, {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+                        }
+                    });
+                } else if (action === 'reject') {
+                    // Host rejecting a request
+                    endpoint = `${environment}/api/reservations/requests/${reservationId}/reject`;
+                    await axios.put(endpoint, {}, {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+                        }
+                    });
+                }
+
+                // Update local state
+                setReservations(prev =>
+                    prev.map(res =>
+                        res.id === confirmDialog.reservationId
+                            ? {
+                                ...res,
+                                status:
+                                    confirmDialog.action === 'cancel'
+                                        ? 'cancelled'
+                                        : confirmDialog.action === 'accept'
+                                            ? 'accepted'
+                                            : 'rejected'
+                            }
+                            : res
+                    )
+                );
+
+                closeConfirmDialog();
+                alert(`Request ${action === 'accept' ? 'approved' : action === 'reject' ? 'rejected' : 'cancelled'} successfully!`);
+            } catch (error) {
+                console.error('Error handling reservation action:', error);
+                const errorMessage = (error as {response?: {data?: {message?: string}}}).response?.data?.message || 'Failed to process reservation';
+                alert(errorMessage);
+                closeConfirmDialog();
+            }
         }
-        closeConfirmDialog();
     };
 
     const handleHostRatingSubmit = (rating: number, comment?: string) => {
-        console.log('Host rating submitted:', {
-            reservationId: ratingDialog.reservationId,
-            rating,
-            comment
-        });
+        const submit = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to submit/update host rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                const payload = {
+                    reservationId: ratingDialog.reservationId,
+                    type: 'HOST' as const,
+                    score: rating,
+                    comment,
+                };
 
-        // Update or create host rating
-        if (ratingDialog.reservationId) {
+                await axios.post(`${environment}/api/ratings`, payload, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            } catch (error) {
+                const message = (error as {response?: {data?: {message?: string}}}).response?.data?.message || '';
+                if (message.includes('Rating already exists')) {
+                    const token = localStorage.getItem('accessToken');
+                    await axios.put(
+                        `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/HOST`,
+                        { score: rating, comment },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+                } else {
+                    console.error('Error submitting host rating:', error);
+                    alert('Failed to submit host rating');
+                    return;
+                }
+            }
+
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -172,20 +294,49 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void submit();
     };
 
     const handleAccommodationRatingSubmit = (rating: number, comment?: string) => {
-        console.log('Accommodation rating submitted:', {
-            reservationId: ratingDialog.reservationId,
-            rating,
-            comment
-        });
+        const submit = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to submit/update accommodation rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                const payload = {
+                    reservationId: ratingDialog.reservationId,
+                    type: 'ACCOMMODATION' as const,
+                    score: rating,
+                    comment,
+                };
 
-        // Update or create accommodation rating
-        if (ratingDialog.reservationId) {
+                await axios.post(`${environment}/api/ratings`, payload, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            } catch (error) {
+                const message = (error as {response?: {data?: {message?: string}}}).response?.data?.message || '';
+                if (message.includes('Rating already exists')) {
+                    const token = localStorage.getItem('accessToken');
+                    await axios.put(
+                        `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/ACCOMMODATION`,
+                        { score: rating, comment },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+                } else {
+                    console.error('Error submitting accommodation rating:', error);
+                    alert('Failed to submit accommodation rating');
+                    return;
+                }
+            }
+
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -193,18 +344,31 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void submit();
     };
 
     const handleHostRatingDelete = () => {
-        console.log('Host rating deleted:', {
-            reservationId: ratingDialog.reservationId
-        });
+        const remove = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to delete host rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                await axios.delete(
+                    `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/HOST`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+            } catch (error) {
+                console.error('Error deleting host rating:', error);
+                alert('Failed to delete host rating');
+                return;
+            }
 
-        // Remove host rating
-        if (ratingDialog.reservationId) {
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -212,18 +376,31 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void remove();
     };
 
     const handleAccommodationRatingDelete = () => {
-        console.log('Accommodation rating deleted:', {
-            reservationId: ratingDialog.reservationId
-        });
+        const remove = async () => {
+            if (!ratingDialog.reservationId) return;
 
-        // TODO: API call to delete accommodation rating
+            try {
+                const token = localStorage.getItem('accessToken');
+                await axios.delete(
+                    `${environment}/api/ratings/reservation/${ratingDialog.reservationId}/ACCOMMODATION`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+            } catch (error) {
+                console.error('Error deleting accommodation rating:', error);
+                alert('Failed to delete accommodation rating');
+                return;
+            }
 
-        // Remove accommodation rating
-        if (ratingDialog.reservationId) {
             setReservations(prev =>
                 prev.map(res =>
                     res.id === ratingDialog.reservationId
@@ -231,7 +408,9 @@ export default function ReservationsPage() {
                         : res
                 )
             );
-        }
+        };
+
+        void remove();
     };
 
     const formatDate = (dateStr: string) => {
@@ -247,6 +426,7 @@ export default function ReservationsPage() {
             case 'pending':
                 return 'warning';
             case 'accepted':
+            case 'approved':
                 return 'success';
             case 'rejected':
             case 'cancelled':
@@ -292,20 +472,44 @@ export default function ReservationsPage() {
         return 'Rate Experience';
     };
 
-    const filteredReservations = reservations.filter(res =>
-        role === 'guest' ? res.status !== 'rejected' : true
-    );
+    const filteredReservations = reservations.filter(res => {
+        if (role === 'host') {
+            // Hosts see pending requests
+            return res.status === 'pending';
+        } else {
+            // Guests see all their reservations
+            return true;
+        }
+    });
 
     const currentReservation = reservations.find(r => r.id === ratingDialog.reservationId);
 
+    if (loading) {
+        return (
+            <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                <CircularProgress />
+            </Container>
+        );
+    }
+
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+            )}
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
                 <Typography variant="h4" fontWeight="bold">
-                    Reservation Requests
+                    {role === 'host' ? 'Reservation Requests' : 'My Reservations'}
                 </Typography>
             </Stack>
 
+            {filteredReservations.length === 0 ? (
+                <Alert severity="info">
+                    {role === 'host' ? 'No pending reservation requests' : 'You have no reservations'}
+                </Alert>
+            ) : (
             <Stack spacing={3}>
                 {filteredReservations.map((reservation) => {
                     const ratingStatus = getRatingStatus(reservation);
@@ -471,6 +675,7 @@ export default function ReservationsPage() {
                     );
                 })}
             </Stack>
+            )}
 
             <Dialog open={confirmDialog.open} onClose={closeConfirmDialog}>
                 <DialogTitle>

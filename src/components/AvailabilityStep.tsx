@@ -13,6 +13,7 @@ interface AvailabilityStepProps {
     setExtraRules: React.Dispatch<React.SetStateAction<ExtraRule[]>>;
     onBack: () => void;
     onSubmit: () => void;
+    isSubmitting?: boolean;
 }
 
 const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
@@ -22,6 +23,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
                                                                setExtraRules,
                                                                onBack,
                                                                onSubmit,
+                                                               isSubmitting,
                                                            }) => {
     const handleAddGeneralAvailability = () => {
         const newAvailability: PriceDefinition = {
@@ -90,8 +92,8 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
                 <Button onClick={onBack}>
                     Back
                 </Button>
-                <Button variant="contained" onClick={onSubmit} sx={{ color: 'white' }}>
-                    Create Accommodation
+                <Button variant="contained" onClick={onSubmit} sx={{ color: 'white' }} disabled={isSubmitting}>
+                    {isSubmitting ? 'Creating...' : 'Create Accommodation'}
                 </Button>
             </Box>
         </Box>
