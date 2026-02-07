@@ -152,23 +152,6 @@ const CreateAccommodationPage: React.FC = () => {
 
             const rulePromises: Promise<{data: unknown}>[] = [];
 
-            generalAvailability
-                .filter((entry) => entry.startDate && entry.endDate && entry.price)
-                .forEach((entry) => {
-                    rulePromises.push(
-                        axios.post(
-                            `${environment}/api/accommodations/${accommodationId}/rules`,
-                            {
-                                startDate: toIso(entry.startDate),
-                                endDate: toIso(entry.endDate),
-                                overridePrice: Number(entry.price),
-                                periodType: 'CUSTOM',
-                            },
-                            { headers: { Authorization: `Bearer ${token}` } }
-                        )
-                    );
-                });
-
             extraRules
                 .filter((rule) => rule.startDate && rule.endDate)
                 .forEach((rule) => {
@@ -186,19 +169,29 @@ const CreateAccommodationPage: React.FC = () => {
 
                     if (rule.type === 'price_override' && rule.price) {
                         dto.overridePrice = Number(rule.price);
+                        rulePromises.push(
+                            axios.post(
+                                `${environment}/api/accommodations/${accommodationId}/rules`,
+                                dto,
+                                { headers: { Authorization: `Bearer ${token}` } }
+                            ));                   
                     }
 
                     if (rule.type === 'unavailability') {
-                        dto.multiplier = 0;
+                            rulePromises.push(
+                                axios.post(
+                                    `${environment}/api/reservations/blocks`,
+                                    {
+                                        accommodationId: accommodationId,
+                                        startDate: dto.startDate,
+                                        endDate: dto.endDate,
+                                    },
+                                    { headers: { Authorization: `Bearer ${token}` } }
+                                )
+                        );
                     }
 
-                    rulePromises.push(
-                        axios.post(
-                            `${environment}/api/accommodations/${accommodationId}/rules`,
-                            dto,
-                            { headers: { Authorization: `Bearer ${token}` } }
-                        )
-                    );
+                    
                 });
 
             if (rulePromises.length > 0) {
