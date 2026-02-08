@@ -1,4 +1,5 @@
 import React, {useContext, useState, useEffect} from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Card,
@@ -20,10 +21,12 @@ import axios, {AxiosError} from "axios";
 import {environment} from "../utils/Environment.tsx";
 
 const SettingsPage: React.FC = () => {
-    const { role, user } = useContext(AuthContext);
+    const { role, user, setUser, setAuthenticated, setRole } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const navigate = useNavigate();
 
 
     // Personal Details State
@@ -171,10 +174,36 @@ const SettingsPage: React.FC = () => {
         setHostNotifications({ ...hostNotifications, [field]: !hostNotifications[field] });
     };
 
-    const handleDeleteAccount = () => {
-        console.log('Deleting account');
-        // TODO: API call to delete account
-        setDeleteDialogOpen(false);
+    const handleDeleteAccount = async () => {
+        setDeleteLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const token = localStorage.getItem('accessToken');
+
+            await axios.delete(`${environment}/api/users/account`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            setAuthenticated?.(false);
+            setUser?.(null);
+            setRole?.('guest');
+
+            setDeleteDialogOpen(false);
+            navigate('/sign-in');
+        } catch (err) {
+            const message = err instanceof AxiosError
+                ? err.response?.data?.message
+                : 'Failed to delete account';
+            setError(message);
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     return (
@@ -440,8 +469,8 @@ const SettingsPage: React.FC = () => {
                     <Button onClick={() => setDeleteDialogOpen(false)}>
                         Cancel
                     </Button>
-                    <Button onClick={handleDeleteAccount} color="error" variant="contained">
-                        Delete Account
+                    <Button onClick={handleDeleteAccount} color="error" variant="contained" disabled={deleteLoading}>
+                        {deleteLoading ? 'Deleting...' : 'Delete Account'}
                     </Button>
                 </DialogActions>
             </Dialog>
