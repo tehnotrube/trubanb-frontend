@@ -1,7 +1,6 @@
 import React from "react";
 import {
     Box,
-    Button,
     Card,
     CardContent,
     FormControl, FormControlLabel,
@@ -11,21 +10,18 @@ import {
     TextField,
     Typography
 } from "@mui/material";
-import {Add as AddIcon, Delete as DeleteIcon} from "@mui/icons-material";
-import {DatePicker} from "@mui/x-date-pickers";
+import {Delete as DeleteIcon} from "@mui/icons-material";
 import type {PriceDefinition} from "../pages/CreateAccommodationPage.tsx";
 import type {PickerValue} from "@mui/x-date-pickers/internals";
 
 interface GeneralAvailabilityCardProps {
     generalAvailability: PriceDefinition[];
-    onAdd: () => void;
     onRemove: (id: number) => void;
     onChange: (id: number, field: string, value: string|PickerValue|null) => void;
 }
 
 const GeneralAvailabilityCard: React.FC<GeneralAvailabilityCardProps> = ({
                                                                              generalAvailability,
-                                                                             onAdd,
                                                                              onRemove,
                                                                              onChange,
                                                                          }) => {
@@ -34,15 +30,8 @@ const GeneralAvailabilityCard: React.FC<GeneralAvailabilityCardProps> = ({
             <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        General Availability & Pricing
+                        General Pricing
                     </Typography>
-                    <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={onAdd}
-                    >
-                        Add Availability Period
-                    </Button>
                 </Box>
 
                 {generalAvailability.map((avail) => (
@@ -56,19 +45,6 @@ const GeneralAvailabilityCard: React.FC<GeneralAvailabilityCardProps> = ({
                         </Box>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                                <DatePicker
-                                    label="Start Date"
-                                    value={avail.startDate}
-                                    onChange={(date) => onChange(avail.id, 'startDate', date)}
-                                />
-                                <DatePicker
-                                    label="End Date"
-                                    value={avail.endDate}
-                                    onChange={(date) => onChange(avail.id, 'endDate', date)}
-                                />
-                            </Box>
-
                             <TextField
                                 label="Price"
                                 type="number"

@@ -25,16 +25,6 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
                                                                onSubmit,
                                                                isSubmitting,
                                                            }) => {
-    const handleAddGeneralAvailability = () => {
-        const newAvailability: PriceDefinition = {
-            id: Date.now(),
-            startDate: null,
-            endDate: null,
-            price: '',
-            priceType: 'accommodation',
-        };
-        setGeneralAvailability([...generalAvailability, newAvailability]);
-    };
 
     const handleRemoveGeneralAvailability = (id: number) => {
         setGeneralAvailability(generalAvailability.filter(avail => avail.id !== id));
@@ -71,7 +61,6 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
         <Box>
             <GeneralAvailabilityCard
                 generalAvailability={generalAvailability}
-                onAdd={handleAddGeneralAvailability}
                 onRemove={handleRemoveGeneralAvailability}
                 onChange={handleGeneralAvailabilityChange}
             />

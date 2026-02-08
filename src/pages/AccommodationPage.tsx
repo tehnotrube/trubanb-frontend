@@ -183,8 +183,8 @@ const AccommodationViewPage: React.FC = () => {
 
             const payload = {
                 accommodationId: accommodation.id,
-                startDate: reservationData.startDate.toISOString(),
-                endDate: reservationData.endDate.toISOString(),
+                startDate: reservationData.startDate.format('YYYY-MM-DD'),
+                endDate: reservationData.endDate.format('YYYY-MM-DD'),
                 numberOfGuests: parseInt(reservationData.guests),
             };
 
