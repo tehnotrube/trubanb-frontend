@@ -12,7 +12,7 @@ export const AuthenticatedRoute: React.FC<AuthenticatedRouteProps> = ({ children
     }
 
     if (!isAuthenticated){
-        return <Navigate to="/login" />
+        return <Navigate to="/sign-in" />
     }
 
     return <>

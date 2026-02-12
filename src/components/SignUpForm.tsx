@@ -180,8 +180,9 @@ const SignUpForm = () => {
                 onChange={handleChange('email')}
             />
             <TextField
-                label="ZIP"
+                label="Password"
                 variant="standard"
+                type="password"
                 required
                 onChange={handleChange('password')}
             />
