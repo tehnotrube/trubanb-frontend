@@ -1,1 +1,1 @@
-export const environment = "http://localhost:8000";
+export const environment = import.meta.env.VITE_API_URL || "";
