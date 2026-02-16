@@ -145,9 +145,9 @@ export default function ReservationsPage() {
                 }
                 
                 // Transform API response to match component interface
-                const transformedReservations = response.data.map((res: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number}) => ({
+                const transformedReservations = response.data.map((res: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number, accommodationId:string}) => ({
                     id: res.id,
-                    accommodationName: res.accommodationName || res.accommodation?.name || 'Accommodation',
+                    accommodationName: res.accommodationName || res.accommodation?.name || null,
                     startDate: res.startDate,
                     endDate: res.endDate,
                     totalPrice: res.totalPrice || res.price || 0,
@@ -155,9 +155,31 @@ export default function ReservationsPage() {
                     status: res.status?.toLowerCase() || (res.requestId ? 'approved' : 'pending'),
                     guestName: res.guestName || res.guestId || 'Guest',
                     guestCancellations: res.guestCancellationCount || res.guestCancellations || 0,
+                    accommodationId: res.accommodationId
                 }));
+
+                const reservationsWithNames = await Promise.all(
+                    transformedReservations.map(async (reservation: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number, accommodationId:string}) => {
+                        if (reservation.accommodationName === null && reservation.accommodationId) {
+                            try {
+                                const accResponse = await axios.get(
+                                    `${environment}/api/accommodations/${reservation.accommodationId}`,
+                                    { headers: { Authorization: `Bearer ${token}` } }
+                                );
+                                return {
+                                    ...reservation,
+                                    accommodationName: accResponse.data.name
+                                };
+                            } catch (error) {
+                                console.error(`Failed to fetch accommodation ${reservation.accommodationId}:`, error);
+                                return reservation; // Return original if fetch fails
+                            }
+                        }
+                        return reservation;
+                    })
+                );
                 
-                setReservations(transformedReservations);
+                setReservations(reservationsWithNames);
                 setError(null);
             } catch (error) {
                 console.error('Error fetching reservations:', error);
@@ -529,7 +551,7 @@ export default function ReservationsPage() {
                                                 </Typography>
                                                 {role === 'host' && (
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Guest: {reservation.guestName}
+                                                        Guest: Anonymous
                                                     </Typography>
                                                 )}
                                             </Box>
