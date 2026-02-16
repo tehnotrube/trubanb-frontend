@@ -88,13 +88,34 @@ const SettingsPage: React.FC = () => {
                 `${environment}/api/users/notification-preferences`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            console.log(response)
-            // setGuestNotifications(...);
-            // setHostNotifications(...);
+
+            const preferences = response.data;
+
+            // Create a map of notification type to enabled status
+            const preferencesMap = preferences.reduce((acc: Record<string, boolean>, pref: {
+                notificationType: string;
+                enabled: boolean;
+            }) => {
+                acc[pref.notificationType] = pref.enabled;
+                return acc;
+            }, {});
+
+            // Update guest notifications
+            setGuestNotifications({
+                reservationAnswer: preferencesMap['RESERVATION_REQUEST_RESPONDED'] ?? true,
+            });
+
+            // Update host notifications
+            setHostNotifications({
+                newReservationRequest: preferencesMap['RESERVATION_REQUEST_CREATED'] ?? true,
+                reservationCancellation: preferencesMap['RESERVATION_CANCELLED'] ?? true,
+                newRatingForHost: preferencesMap['HOST_RATED'] ?? true,
+                newRatingForAccommodation: preferencesMap['ACCOMMODATION_RATED'] ?? true,
+            });
         } catch (error) {
             console.error('Error fetching notification preferences:', error);
         }
-    }, []); // Empty dependencies since it doesn't depend on any state or props
+    }, []);
 
     useEffect(() => {
         if (user) {
