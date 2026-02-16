@@ -71,6 +71,7 @@ const CreateEditAccommodationPage: React.FC = () => {
         zip: '',
         minGuests: '1',
         maxGuests: '2',
+        autoApprove: false, // ADDED: autoApprove field
     });
 
     const [amenities, setAmenities] = useState({
@@ -97,10 +98,12 @@ const CreateEditAccommodationPage: React.FC = () => {
 
     const [extraRules, setExtraRules] = useState<ExtraRule[]>([]);
 
+    // ADDED: Store original rules for comparison in edit mode
+    const [originalExtraRules, setOriginalExtraRules] = useState<ExtraRule[]>([]);
+
     const steps = ['Basic Information', 'Availability & Pricing'];
 
     // Fetch accommodation data if in edit mode
-    // FIXED: Moved the fetch logic directly into useEffect to avoid setState in effect warning
     useEffect(() => {
         if (!isEditMode || !accommodationId) return;
 
@@ -132,6 +135,7 @@ const CreateEditAccommodationPage: React.FC = () => {
                     zip,
                     minGuests: String(data.minGuests),
                     maxGuests: String(data.maxGuests),
+                    autoApprove: data.autoApprove || false, // ADDED: Load autoApprove
                 });
 
                 // Parse amenities
@@ -174,6 +178,7 @@ const CreateEditAccommodationPage: React.FC = () => {
                 ];
 
                 setExtraRules(combinedRules);
+                setOriginalExtraRules(combinedRules); // ADDED: Store original rules
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching accommodation:', error);
@@ -193,8 +198,6 @@ const CreateEditAccommodationPage: React.FC = () => {
     const handleBack = () => {
         setActiveStep((prevStep) => prevStep - 1);
     };
-
-    // In CreateEditAccommodationPage.tsx
 
     const handleSubmit = async () => {
         setSubmitError(null);
@@ -228,6 +231,7 @@ const CreateEditAccommodationPage: React.FC = () => {
             maxGuests: Number(basicInfo.maxGuests),
             basePrice: Number(basePriceEntry.price),
             isPerUnit: basePriceEntry.priceType === 'accommodation',
+            autoApprove: basicInfo.autoApprove, // ADDED: Include autoApprove
         };
 
         try {
@@ -291,7 +295,7 @@ const CreateEditAccommodationPage: React.FC = () => {
         }
     };
 
-// Helper function to handle rules creation (for new accommodations)
+    // Helper function to handle rules creation (for new accommodations)
     const handleRulesCreate = async (accommodationId: string, token: string, toIso: (date: Dayjs | null) => string) => {
         const rulePromises: Promise<unknown>[] = [];
 
@@ -341,7 +345,17 @@ const CreateEditAccommodationPage: React.FC = () => {
         }
     };
 
-// Helper function to handle rules update (for existing accommodations)
+    // ADDED: Helper function to check if a rule has changed
+    const hasRuleChanged = (currentRule: ExtraRule, originalRule: ExtraRule): boolean => {
+        return (
+            currentRule.type !== originalRule.type ||
+            currentRule.price !== originalRule.price ||
+            currentRule.startDate?.format('YYYY-MM-DD') !== originalRule.startDate?.format('YYYY-MM-DD') ||
+            currentRule.endDate?.format('YYYY-MM-DD') !== originalRule.endDate?.format('YYYY-MM-DD') ||
+            currentRule.priceType !== originalRule.priceType
+        );
+    };
+
     // Helper function to handle rules update (for existing accommodations)
     const handleRulesUpdate = async (accommodationId: string, token: string) => {
         // Fetch current rules from backend to compare
@@ -352,10 +366,10 @@ const CreateEditAccommodationPage: React.FC = () => {
 
         const currentData = response.data;
         const currentRules = currentData.accommodationRules || [];
-        const currentBlocks = currentData.blockedPeriods.filter((block:BlockedPeriodDTO)=> block.reason=='MANUAL') || [];
+        const currentBlocks = currentData.blockedPeriods.filter((block: BlockedPeriodDTO) => block.reason === 'MANUAL') || [];
 
         // Separate current and new rules by type
-        const currentPriceOverrides = new Set(currentRules.map((r: ExtraRuleDTO) => r.id));
+        const currentPriceOverrides = new Map(currentRules.map((r: ExtraRuleDTO) => [r.id, r]));
         const currentUnavailability = new Set(currentBlocks.map((b: BlockedPeriodDTO) => b.reservationId));
 
         const clientPriceOverrides = extraRules.filter(r => r.type === 'price_override');
@@ -380,14 +394,17 @@ const CreateEditAccommodationPage: React.FC = () => {
             };
 
             if (rule.id && currentPriceOverrides.has(rule.id)) {
-                // Update existing rule (if PATCH is supported for rules)
-                promises.push(
-                    axios.patch(
-                        `${environment}/api/accommodations/${accommodationId}/rules/${rule.id}`,
-                        dto,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    )
-                );
+                // CHANGED: Only update if the rule has changed
+                const originalRule = originalExtraRules.find(r => r.id === rule.id);
+                if (originalRule && hasRuleChanged(rule, originalRule)) {
+                    promises.push(
+                        axios.patch(
+                            `${environment}/api/accommodations/${accommodationId}/rules/${rule.id}`,
+                            dto,
+                            { headers: { Authorization: `Bearer ${token}` } }
+                        )
+                    );
+                }
                 currentPriceOverrides.delete(rule.id);
             } else {
                 // Create new rule
@@ -402,7 +419,7 @@ const CreateEditAccommodationPage: React.FC = () => {
         });
 
         // Delete removed price override rules
-        currentPriceOverrides.forEach(ruleId => {
+        currentPriceOverrides.forEach((_, ruleId) => {
             promises.push(
                 axios.delete(
                     `${environment}/api/accommodations/${accommodationId}/rules/${ruleId}`,
@@ -500,6 +517,7 @@ const CreateEditAccommodationPage: React.FC = () => {
                     onBack={handleBack}
                     onSubmit={handleSubmit}
                     isSubmitting={isSubmitting}
+                    isEditMode={isEditMode} // ADDED: Pass isEditMode to AvailabilityStep
                 />
             )}
         </Box>

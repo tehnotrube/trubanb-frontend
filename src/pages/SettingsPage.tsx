@@ -392,7 +392,7 @@ const SettingsPage: React.FC = () => {
                                 variant="contained"
                                 onClick={handleSavePersonalDetails}
                                 disabled={loading}
-                                sx={{ mt: 2 }}
+                                sx={{ mt: 2, color:'white' }}
                             >
                                 {loading ? 'Saving...' : 'Save Changes'}
                             </Button>
@@ -437,7 +437,7 @@ const SettingsPage: React.FC = () => {
                                 variant="contained"
                                 onClick={handleChangePassword}
                                 disabled={loading}
-                                sx={{ mt: 2 }}
+                                sx={{ mt: 2, color:'white'}}
                             >
                                 {loading ? 'Changing...' : 'Change Password'}
                             </Button>

@@ -20,6 +20,7 @@ interface BasicInfo {
     zip: string;
     minGuests: string;
     maxGuests: string;
+    autoApprove: boolean; // ADDED: autoApprove field
 }
 
 interface Amenities {
@@ -51,7 +52,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                                                          setExistingPhotoUrls,
                                                          onNext,
                                                      }) => {
-    const handleBasicInfoChange = (field: keyof BasicInfo, value: string) => {
+    const handleBasicInfoChange = (field: keyof BasicInfo, value: string | boolean) => {
         setBasicInfo({ ...basicInfo, [field]: value });
     };
 
@@ -149,11 +150,11 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         onChange={(e) => handleBasicInfoChange('maxGuests', e.target.value)}
                         inputProps={{ min: 1 }}
                     />
-                    <Box>
+                    <Box sx={{ gridColumn: '1 / -1' }}>
                         <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                             Amenities
                         </Typography>
-                        <FormGroup sx={{ display: 'flex', flexDirection:'row' }}>
+                        <FormGroup sx={{ display: 'flex', flexDirection:'row', flexWrap: 'wrap' }}>
                             <FormControlLabel
                                 control={
                                     <Checkbox
@@ -180,6 +181,24 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                                     />
                                 }
                                 label="Free Parking"
+                            />
+                        </FormGroup>
+                    </Box>
+
+                    {/* ADDED: Auto-approve checkbox in its own section */}
+                    <Box sx={{ gridColumn: '1 / -1' }}>
+                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                            Reservation Settings
+                        </Typography>
+                        <FormGroup>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={basicInfo.autoApprove}
+                                        onChange={(e) => handleBasicInfoChange('autoApprove', e.target.checked)}
+                                    />
+                                }
+                                label="Auto-approve reservation requests"
                             />
                         </FormGroup>
                     </Box>
