@@ -18,6 +18,7 @@ import {AuthProvider} from "./utils/AuthProvider.tsx";
 import {UnauthenticatedRoute} from "./pages/UnauthenticatedRoute.tsx";
 import {AuthenticatedRoute} from "./pages/AuthenticatedRoute.tsx";
 import MyAccommodationsPage from "./pages/MyAccommodationsPage.tsx";
+import {NotificationProvider} from "./utils/NotificationContext.tsx";
 
 const theme = createTheme({
     typography: {
@@ -76,6 +77,7 @@ const router = createBrowserRouter([ // TODO: Add guards to routes
     {path: "/settings", element: <AuthenticatedRoute><Sidebar><SettingsPage/></Sidebar></AuthenticatedRoute>},
     {path: "/my-accommodations", element: <AuthenticatedRoute><Sidebar><MyAccommodationsPage/></Sidebar></AuthenticatedRoute>},
     {path: "/create-accommodation", element: <AuthenticatedRoute><Sidebar><CreateAccommodationPage/></Sidebar></AuthenticatedRoute>},
+    {path: "/:id/edit-accommodation", element: <AuthenticatedRoute><Sidebar><CreateAccommodationPage/></Sidebar></AuthenticatedRoute>},
     {path: "/accommodation/:id", element: <Sidebar><AccommodationPage/></Sidebar>},
     {path: "/reservations", element: <AuthenticatedRoute><Sidebar><ReservationPage/></Sidebar></AuthenticatedRoute>},
     {path: "*", element: <Navigate to="" replace/>},
@@ -86,7 +88,9 @@ createRoot(document.getElementById('root')!).render(
         <ThemeProvider theme={theme}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <AuthProvider>
-                    <RouterProvider router={router}/>
+                    <NotificationProvider>
+                        <RouterProvider router={router}/>
+                    </NotificationProvider>
                 </AuthProvider>
             </LocalizationProvider>
         </ThemeProvider>

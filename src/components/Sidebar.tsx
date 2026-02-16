@@ -25,6 +25,10 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../utils/AuthContext.tsx";
+import { Notifications as NotificationsIcon } from '@mui/icons-material';
+import { Badge } from '@mui/material';
+import { useNotification } from '../utils/NotificationContext';
+import NotificationsPanel from './NotificationPanel.tsx';
 
 interface SidebarLayoutProps {
   children: ReactNode;
@@ -37,6 +41,8 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { unreadCount } = useNotification();
+  const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
 
   const [view, setView] = useState<'menu' | 'search'>(
     location.pathname === "/" ? 'search' : 'menu'
@@ -246,6 +252,14 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         <Box>
           {isAuthenticated ? (
             <Box display="flex" alignItems="center">
+              <IconButton
+                  onClick={() => setNotificationsPanelOpen(true)}
+                  sx={{ color: 'white', mr: 1 }}
+              >
+                <Badge badgeContent={unreadCount} color="error">
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
               <Box display='flex' flexDirection='row' justifyContent='center' alignItems='center' onClick={() => navigate('/settings')} sx={{ cursor: 'pointer' }}>
                 <Avatar src={profilePic} sx={{ mr: 1 }} />
                 <Typography ml={1}>{username}</Typography>
@@ -278,6 +292,11 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       }}>
         {children}
       </Box>
+      {/* Notifications Panel */}
+      <NotificationsPanel
+          open={notificationsPanelOpen}
+          onClose={() => setNotificationsPanelOpen(false)}
+      />
     </Box>
   );
 };

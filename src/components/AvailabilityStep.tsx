@@ -26,18 +26,18 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
                                                                isSubmitting,
                                                            }) => {
 
-    const handleRemoveGeneralAvailability = (id: number) => {
-        setGeneralAvailability(generalAvailability.filter(avail => avail.id !== id));
+    const handleRemoveGeneralAvailability = (id: string) => {
+        setGeneralAvailability(generalAvailability.filter(avail => avail.id !== id as unknown as string));
     };
-
-    const handleGeneralAvailabilityChange = (id: number, field: string, value: string | PickerValue | null) => {
+    console.log(extraRules);
+    const handleGeneralAvailabilityChange = (id: string, field: string, value: string | PickerValue | null) => {
         setGeneralAvailability(generalAvailability.map(item =>
-            item.id === id ? { ...item, [field]: value } : item
+            item.id === id as unknown as string ? { ...item, [field]: value } : item
         ));
     };
     const handleAddExtraRule = () => {
         const newRule: ExtraRule = {
-            id: Date.now(),
+            id: Date.now() as unknown as string,
             type: 'price_override',
             startDate: null,
             endDate: null,
@@ -47,13 +47,13 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
         setExtraRules([...extraRules, newRule]);
     };
 
-    const handleRemoveExtraRule = (id: number) => {
-        setExtraRules(extraRules.filter(rule => rule.id !== id));
+    const handleRemoveExtraRule = (id: string) => {
+        setExtraRules(extraRules.filter(rule => rule.id !== id as unknown as string));
     };
 
-    const handleExtraRuleChange = (id: number, field: string, value: string|PickerValue|null) => {
+    const handleExtraRuleChange = (id: string, field: string, value: string|PickerValue|null) => {
         setExtraRules(extraRules.map(rule =>
-            rule.id === id ? { ...rule, [field]: value } : rule
+            rule.id === id as unknown as string ? { ...rule, [field]: value } : rule
         ));
     };
 

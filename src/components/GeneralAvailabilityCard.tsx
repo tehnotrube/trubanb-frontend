@@ -16,8 +16,8 @@ import type {PickerValue} from "@mui/x-date-pickers/internals";
 
 interface GeneralAvailabilityCardProps {
     generalAvailability: PriceDefinition[];
-    onRemove: (id: number) => void;
-    onChange: (id: number, field: string, value: string|PickerValue|null) => void;
+    onRemove: (id: string) => void;
+    onChange: (id: string, field: string, value: string|PickerValue|null) => void;
 }
 
 const GeneralAvailabilityCard: React.FC<GeneralAvailabilityCardProps> = ({
