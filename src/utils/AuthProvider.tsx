@@ -13,18 +13,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isRefreshingRef = useRef(false); // ADDED: Prevent multiple simultaneous refresh attempts
 
     // Function to refresh the token
     const refreshToken = useCallback(async () => {
+        // Prevent multiple simultaneous refresh attempts
+        if (isRefreshingRef.current) {
+            return false;
+        }
+
         const refresh = localStorage.getItem('refreshToken');
 
         if (!refresh) {
             setIsAuthenticated(false);
             setUser(null);
+            setRole('guest');
             return false;
         }
 
         try {
+            isRefreshingRef.current = true;
+            console.log('Attempting to refresh token...');
+
             const res = await axios.post(`${environment}/api/auth/refresh`, {
                 refreshToken: refresh
             });
@@ -37,6 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
                     localStorage.setItem('refreshToken', res.data.refreshToken);
                 }
 
+                console.log('Token refreshed successfully');
                 return true;
             }
 
@@ -50,6 +61,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
             setUser(null);
             setRole('guest');
             return false;
+        } finally {
+            isRefreshingRef.current = false;
         }
     }, []);
 
@@ -60,17 +73,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
             async (error) => {
                 const originalRequest = error.config;
 
+                console.log('Axios interceptor caught error:', error.response?.status);
+
                 // If error is 401 and we haven't tried to refresh yet
                 if (error.response?.status === 401 && !originalRequest._retry) {
                     originalRequest._retry = true;
 
+                    console.log('Attempting to refresh token due to 401...');
                     const refreshed = await refreshToken();
 
                     if (refreshed) {
                         // Retry the original request with new token
                         const token = localStorage.getItem('accessToken');
                         originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                        console.log('Retrying original request with new token');
                         return axios(originalRequest);
+                    } else {
+                        console.log('Token refresh failed, redirecting to login');
+                        // Redirect to login page or show auth error
+                        window.location.href = '/sign-in';
                     }
                 }
 
@@ -96,6 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
         const refreshInterval = 10 * 60 * 1000; // 10 minutes
 
         refreshTimerRef.current = setTimeout(async () => {
+            console.log('Scheduled token refresh triggered');
             const refreshed = await refreshToken();
 
             if (refreshed) {
@@ -112,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
         if (!token) {
             setIsAuthenticated(false);
             setUser(null);
+            setRole('guest');
             setIsLoading(false);
             return;
         }
@@ -132,7 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
                 scheduleTokenRefresh();
             }
         } catch (error) {
-            console.log(error)
+            console.log('Initial auth check failed, attempting refresh:', error);
             const refreshed = await refreshToken();
 
             if (refreshed) {
@@ -153,12 +176,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
                 } catch {
                     setIsAuthenticated(false);
                     setUser(null);
+                    setRole('guest');
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('refreshToken');
                 }
             } else {
                 setIsAuthenticated(false);
                 setUser(null);
+                setRole('guest');
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
             }

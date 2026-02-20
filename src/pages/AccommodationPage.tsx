@@ -55,7 +55,7 @@ const AccommodationViewPage: React.FC = () => {
         endDate: null as Dayjs | null,
         guests: '2',
     });
-    const {isAuthenticated, role} = useContext(AuthContext);
+    const {isAuthenticated, role, user} = useContext(AuthContext);
     const [accommodation, setAccommodation] = useState<{
         id: string;
         name: string;
@@ -283,7 +283,7 @@ const AccommodationViewPage: React.FC = () => {
                 >
                     Reserve
                 </Button>}
-                {isAuthenticated && role=='host' && <Button
+                {isAuthenticated && role=='host' && accommodation.hostId==user?.id && <Button
                     variant="contained"
                     size="large"
                     onClick={() => navigate(`/${accommodation.id}/edit-accommodation`)}
