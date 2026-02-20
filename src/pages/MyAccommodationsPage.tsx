@@ -20,8 +20,8 @@ const MyAccommodationsPage: React.FC = () => {
             }
 
             try {
-                const response = await axios.get(
-                    `${environment}/api/accommodations/hosts/me`,
+                const response = await axios.post(
+                    `${environment}/api/accommodations/hosts/me`,{},
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
