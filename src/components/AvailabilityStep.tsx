@@ -14,6 +14,7 @@ interface AvailabilityStepProps {
     onBack: () => void;
     onSubmit: () => void;
     isSubmitting?: boolean;
+    isEditMode?: boolean; // ADDED: isEditMode prop
 }
 
 const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
@@ -23,21 +24,23 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
                                                                setExtraRules,
                                                                onBack,
                                                                onSubmit,
-                                                               isSubmitting,
+                                                               isSubmitting = false,
+                                                               isEditMode = false, // ADDED: isEditMode with default value
                                                            }) => {
 
-    const handleRemoveGeneralAvailability = (id: number) => {
+    const handleRemoveGeneralAvailability = (id: string) => {
         setGeneralAvailability(generalAvailability.filter(avail => avail.id !== id));
     };
 
-    const handleGeneralAvailabilityChange = (id: number, field: string, value: string | PickerValue | null) => {
+    const handleGeneralAvailabilityChange = (id: string, field: string, value: string | PickerValue | null) => {
         setGeneralAvailability(generalAvailability.map(item =>
             item.id === id ? { ...item, [field]: value } : item
         ));
     };
+
     const handleAddExtraRule = () => {
         const newRule: ExtraRule = {
-            id: Date.now(),
+            id: Date.now().toString(),
             type: 'price_override',
             startDate: null,
             endDate: null,
@@ -47,11 +50,11 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
         setExtraRules([...extraRules, newRule]);
     };
 
-    const handleRemoveExtraRule = (id: number) => {
+    const handleRemoveExtraRule = (id: string) => {
         setExtraRules(extraRules.filter(rule => rule.id !== id));
     };
 
-    const handleExtraRuleChange = (id: number, field: string, value: string|PickerValue|null) => {
+    const handleExtraRuleChange = (id: string, field: string, value: string | PickerValue | null) => {
         setExtraRules(extraRules.map(rule =>
             rule.id === id ? { ...rule, [field]: value } : rule
         ));
@@ -82,10 +85,15 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({
                     Back
                 </Button>
                 <Button variant="contained" onClick={onSubmit} sx={{ color: 'white' }} disabled={isSubmitting}>
-                    {isSubmitting ? 'Creating...' : 'Create Accommodation'}
+                    {/* UPDATED: Dynamic button text based on isEditMode and isSubmitting */}
+                    {isSubmitting
+                        ? (isEditMode ? 'Updating...' : 'Creating...')
+                        : (isEditMode ? 'Update Accommodation' : 'Create Accommodation')
+                    }
                 </Button>
             </Box>
         </Box>
     );
 };
+
 export default AvailabilityStep;

@@ -20,6 +20,7 @@ interface BasicInfo {
     zip: string;
     minGuests: string;
     maxGuests: string;
+    autoApprove: boolean; // ADDED: autoApprove field
 }
 
 interface Amenities {
@@ -35,6 +36,8 @@ interface BasicInfoStepProps {
     setAmenities: React.Dispatch<React.SetStateAction<Amenities>>;
     images: { file: File; preview: string }[];
     setImages: React.Dispatch<React.SetStateAction<{ file: File; preview: string }[]>>;
+    existingPhotoUrls?: string[];
+    setExistingPhotoUrls?: React.Dispatch<React.SetStateAction<string[]>>;
     onNext: () => void;
 }
 
@@ -45,9 +48,11 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                                                          setAmenities,
                                                          images,
                                                          setImages,
+                                                         existingPhotoUrls = [],
+                                                         setExistingPhotoUrls,
                                                          onNext,
                                                      }) => {
-    const handleBasicInfoChange = (field: keyof BasicInfo, value: string) => {
+    const handleBasicInfoChange = (field: keyof BasicInfo, value: string | boolean) => {
         setBasicInfo({ ...basicInfo, [field]: value });
     };
 
@@ -58,8 +63,10 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
+            const totalImages = existingPhotoUrls.length + images.length;
+            const remainingSlots = 10 - totalImages;
             const newImages = Array.from(files)
-                .slice(0, 10 - images.length)
+                .slice(0, remainingSlots)
                 .map((file) => ({ file, preview: URL.createObjectURL(file) }));
             setImages([...images, ...newImages]);
         }
@@ -72,6 +79,14 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         }
         setImages(images.filter((_, i) => i !== index));
     };
+
+    const handleExistingImageRemove = (index: number) => {
+        if (setExistingPhotoUrls) {
+            setExistingPhotoUrls(existingPhotoUrls.filter((_, i) => i !== index));
+        }
+    };
+
+    const totalImages = existingPhotoUrls.length + images.length;
 
     return (
         <Card>
@@ -135,11 +150,11 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         onChange={(e) => handleBasicInfoChange('maxGuests', e.target.value)}
                         inputProps={{ min: 1 }}
                     />
-                    <Box>
+                    <Box sx={{ gridColumn: '1 / -1' }}>
                         <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                             Amenities
                         </Typography>
-                        <FormGroup sx={{ display: 'flex', flexDirection:'row' }}>
+                        <FormGroup sx={{ display: 'flex', flexDirection:'row', flexWrap: 'wrap' }}>
                             <FormControlLabel
                                 control={
                                     <Checkbox
@@ -170,6 +185,24 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         </FormGroup>
                     </Box>
 
+                    {/* ADDED: Auto-approve checkbox in its own section */}
+                    <Box sx={{ gridColumn: '1 / -1' }}>
+                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                            Reservation Settings
+                        </Typography>
+                        <FormGroup>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={basicInfo.autoApprove}
+                                        onChange={(e) => handleBasicInfoChange('autoApprove', e.target.checked)}
+                                    />
+                                }
+                                label="Auto-approve reservation requests"
+                            />
+                        </FormGroup>
+                    </Box>
+
 
                     <Box sx={{ gridColumn: '1 / -1' }}>
                         <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
@@ -179,7 +212,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                             variant="outlined"
                             component="label"
                             startIcon={<CloudUploadIcon />}
-                            disabled={images.length >= 10}
+                            disabled={totalImages >= 10}
                             sx={{ mb: 2 }}
                         >
                             Upload Images
@@ -192,13 +225,56 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                             />
                         </Button>
                         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                            {images.length}/10 images uploaded
+                            {totalImages}/10 images uploaded
                         </Typography>
 
                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 2 }}>
+                            {/* Existing photos from server */}
+                            {existingPhotoUrls.map((url, index) => (
+                                <Box
+                                    key={`existing-${index}`}
+                                    sx={{
+                                        position: 'relative',
+                                        paddingTop: '100%',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
+                                        border: '1px solid #e0e0e0',
+                                    }}
+                                >
+                                    <Box
+                                        component="img"
+                                        src={url}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                        }}
+                                    />
+                                    <IconButton
+                                        onClick={() => handleExistingImageRemove(index)}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 4,
+                                            right: 4,
+                                            bgcolor: 'rgba(0, 0, 0, 0.6)',
+                                            color: 'white',
+                                            '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.8)' },
+                                            padding: 0.5,
+                                        }}
+                                        size="small"
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                            ))}
+
+                            {/* New uploaded images */}
                             {images.map((image, index) => (
                                 <Box
-                                    key={index}
+                                    key={`new-${index}`}
                                     sx={{
                                         position: 'relative',
                                         paddingTop: '100%',

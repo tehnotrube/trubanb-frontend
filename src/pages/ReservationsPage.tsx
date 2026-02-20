@@ -46,7 +46,7 @@ interface Reservation {
     endDate: string;
     totalPrice: number;
     numberOfGuests: number;
-    status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+    status: 'pending' | 'accepted' | 'approved' | 'rejected' | 'cancelled';
     guestName: string;
     guestCancellations?: number;
     hostRating?: RatingData;
@@ -135,7 +135,7 @@ export default function ReservationsPage() {
                                 }
                             })
                         );
-                        
+
                         // Combine requests and confirmed reservations
                         response = { data: [...requestsWithAccommodations, ...reservationsData] };
                     } catch (error) {
@@ -143,11 +143,11 @@ export default function ReservationsPage() {
                         response = { data: [] };
                     }
                 }
-                
+
                 // Transform API response to match component interface
-                const transformedReservations = response.data.map((res: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number}) => ({
+                const transformedReservations = response.data.map((res: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number, accommodationId:string}) => ({
                     id: res.id,
-                    accommodationName: res.accommodationName || res.accommodation?.name || 'Accommodation',
+                    accommodationName: res.accommodationName || res.accommodation?.name || null,
                     startDate: res.startDate,
                     endDate: res.endDate,
                     totalPrice: res.totalPrice || res.price || 0,
@@ -155,9 +155,31 @@ export default function ReservationsPage() {
                     status: res.status?.toLowerCase() || (res.requestId ? 'approved' : 'pending'),
                     guestName: res.guestName || res.guestId || 'Guest',
                     guestCancellations: res.guestCancellationCount || res.guestCancellations || 0,
+                    accommodationId: res.accommodationId
                 }));
-                
-                setReservations(transformedReservations);
+
+                const reservationsWithNames = await Promise.all(
+                    transformedReservations.map(async (reservation: {id: string; requestId?: string; accommodationName?: string; accommodation?: {name: string}; startDate: string; endDate: string; totalPrice?: number; price?: number; numberOfGuests?: number; guests?: number; status?: string; guestName?: string; guestId?: string; guestCancellationCount?: number; guestCancellations?: number, accommodationId:string}) => {
+                        if (reservation.accommodationName === null && reservation.accommodationId) {
+                            try {
+                                const accResponse = await axios.get(
+                                    `${environment}/api/accommodations/${reservation.accommodationId}`,
+                                    { headers: { Authorization: `Bearer ${token}` } }
+                                );
+                                return {
+                                    ...reservation,
+                                    accommodationName: accResponse.data.name
+                                };
+                            } catch (error) {
+                                console.error(`Failed to fetch accommodation ${reservation.accommodationId}:`, error);
+                                return reservation; // Return original if fetch fails
+                            }
+                        }
+                        return reservation;
+                    })
+                );
+
+                setReservations(reservationsWithNames);
                 setError(null);
             } catch (error) {
                 console.error('Error fetching reservations:', error);
@@ -187,17 +209,48 @@ export default function ReservationsPage() {
         setRatingDialog({ open: false, reservationId: null });
     };
 
+    // Helper function to check if guest can cancel accepted/approved reservation
+    const canCancelAcceptedReservation = (reservation: Reservation): boolean => {
+        if (role !== 'guest') {
+            return false;
+        }
+
+        // Check if reservation is accepted or approved (not pending, rejected, or cancelled)
+        if (reservation.status !== 'accepted' && reservation.status !== 'approved') {
+            return false;
+        }
+
+        const startDate = new Date(reservation.startDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        startDate.setHours(0, 0, 0, 0);
+
+        const daysDifference = Math.floor((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Can cancel if start date is at least 1 day in the future
+        return daysDifference >= 1;
+    };
+
     const handleConfirmAction = async () => {
         if (confirmDialog.reservationId && confirmDialog.action) {
             try {
                 const reservationId = confirmDialog.reservationId;
                 const action = confirmDialog.action;
-                
+
                 let endpoint = '';
-                
+
                 if (action === 'cancel') {
-                    // Guest cancelling their reservation
-                    endpoint = `${environment}/api/reservations/${reservationId}`;
+                    // Find the reservation to check its status
+                    const reservation = reservations.find(r => r.id === reservationId);
+
+                    if (reservation?.status === 'pending') {
+                        // Cancel pending request
+                        endpoint = `${environment}/api/reservations/requests/${reservationId}`;
+                    } else {
+                        // Cancel accepted/approved reservation
+                        endpoint = `${environment}/api/reservations/${reservationId}`;
+                    }
+
                     await axios.delete(endpoint, {
                         headers: {
                             Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -221,22 +274,22 @@ export default function ReservationsPage() {
                     });
                 }
 
-                // Update local state
-                setReservations(prev =>
-                    prev.map(res =>
-                        res.id === confirmDialog.reservationId
-                            ? {
-                                ...res,
-                                status:
-                                    confirmDialog.action === 'cancel'
-                                        ? 'cancelled'
-                                        : confirmDialog.action === 'accept'
-                                            ? 'accepted'
-                                            : 'rejected'
-                            }
-                            : res
-                    )
-                );
+                // Remove cancelled reservations from the list instead of just updating status
+                if (action === 'cancel') {
+                    setReservations(prev => prev.filter(res => res.id !== confirmDialog.reservationId));
+                } else {
+                    // Update local state for accept/reject
+                    setReservations(prev =>
+                        prev.map(res =>
+                            res.id === confirmDialog.reservationId
+                                ? {
+                                    ...res,
+                                    status: action === 'accept' ? 'accepted' : 'rejected'
+                                }
+                                : res
+                        )
+                    );
+                }
 
                 closeConfirmDialog();
                 alert(`Request ${action === 'accept' ? 'approved' : action === 'reject' ? 'rejected' : 'cancelled'} successfully!`);
@@ -443,7 +496,7 @@ export default function ReservationsPage() {
     const canRate = (reservation: Reservation) => {
         return (
             role === 'guest' &&
-            reservation.status === 'accepted' &&
+            (reservation.status === 'accepted' || reservation.status === 'approved') &&
             isPastReservation(reservation.endDate)
         );
     };
@@ -510,171 +563,185 @@ export default function ReservationsPage() {
                     {role === 'host' ? 'No pending reservation requests' : 'You have no reservations'}
                 </Alert>
             ) : (
-            <Stack spacing={3}>
-                {filteredReservations.map((reservation) => {
-                    const ratingStatus = getRatingStatus(reservation);
+                <Stack spacing={3}>
+                    {filteredReservations.map((reservation) => {
+                        const ratingStatus = getRatingStatus(reservation);
 
-                    return (
-                        <Card key={reservation.id} elevation={2} sx={{ width: '100%' }}>
-                            <CardContent>
-                                <Stack spacing={2}>
-                                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                            <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
-                                                <Home />
-                                            </Avatar>
-                                            <Box>
-                                                <Typography variant="h6" fontWeight="bold">
-                                                    {reservation.accommodationName}
-                                                </Typography>
-                                                {role === 'host' && (
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Guest: {reservation.guestName}
+                        return (
+                            <Card key={reservation.id} elevation={2} sx={{ width: '100%' }}>
+                                <CardContent>
+                                    <Stack spacing={2}>
+                                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
+                                                    <Home />
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography variant="h6" fontWeight="bold">
+                                                        {reservation.accommodationName}
                                                     </Typography>
-                                                )}
+                                                    {role === 'host' && (
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Guest: Anonymous
+                                                        </Typography>
+                                                    )}
+                                                </Box>
                                             </Box>
-                                        </Box>
-                                        <Stack direction="row" spacing={1} alignItems="center">
-                                            <Chip
-                                                label={reservation.status.toUpperCase()}
-                                                color={getStatusColor(reservation.status)}
-                                                size="small"
-                                            />
-                                            {ratingStatus && (
+                                            <Stack direction="row" spacing={1} alignItems="center">
                                                 <Chip
-                                                    icon={ratingStatus.icon}
-                                                    label={ratingStatus.label}
-                                                    color={ratingStatus.color}
+                                                    label={reservation.status.toUpperCase()}
+                                                    color={getStatusColor(reservation.status)}
                                                     size="small"
                                                 />
-                                            )}
+                                                {ratingStatus && (
+                                                    <Chip
+                                                        icon={ratingStatus.icon}
+                                                        label={ratingStatus.label}
+                                                        color={ratingStatus.color}
+                                                        size="small"
+                                                    />
+                                                )}
+                                            </Stack>
                                         </Stack>
-                                    </Stack>
 
-                                    <Divider />
+                                        <Divider />
 
-                                    <Grid container spacing={3}>
-                                        <Grid>
-                                            <Stack direction="row" spacing={1} alignItems="center">
-                                                <CalendarToday fontSize="small" color="action" />
-                                                <Box>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Check-in
-                                                    </Typography>
-                                                    <Typography variant="body2" fontWeight="medium">
-                                                        {formatDate(reservation.startDate)}
-                                                    </Typography>
-                                                </Box>
-                                            </Stack>
-                                        </Grid>
-
-                                        <Grid>
-                                            <Stack direction="row" spacing={1} alignItems="center">
-                                                <CalendarToday fontSize="small" color="action" />
-                                                <Box>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Check-out
-                                                    </Typography>
-                                                    <Typography variant="body2" fontWeight="medium">
-                                                        {formatDate(reservation.endDate)}
-                                                    </Typography>
-                                                </Box>
-                                            </Stack>
-                                        </Grid>
-
-                                        <Grid>
-                                            <Stack direction="row" spacing={1} alignItems="center">
-                                                <People fontSize="small" color="action" />
-                                                <Box>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Guests
-                                                    </Typography>
-                                                    <Typography variant="body2" fontWeight="medium">
-                                                        {reservation.numberOfGuests}
-                                                    </Typography>
-                                                </Box>
-                                            </Stack>
-                                        </Grid>
-
-                                        <Grid>
-                                            <Stack direction="row" spacing={1} alignItems="center">
-                                                <AttachMoney fontSize="small" color="action" />
-                                                <Box>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Total Price
-                                                    </Typography>
-                                                    <Typography variant="body2" fontWeight="medium">
-                                                        ${reservation.totalPrice}
-                                                    </Typography>
-                                                </Box>
-                                            </Stack>
-                                        </Grid>
-
-                                        {role === 'host' && (
+                                        <Grid container spacing={3}>
                                             <Grid>
                                                 <Stack direction="row" spacing={1} alignItems="center">
-                                                    <Cancel fontSize="small" color="action" />
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Guest Cancellations: {reservation.guestCancellations}
-                                                    </Typography>
+                                                    <CalendarToday fontSize="small" color="action" />
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Check-in
+                                                        </Typography>
+                                                        <Typography variant="body2" fontWeight="medium">
+                                                            {formatDate(reservation.startDate)}
+                                                        </Typography>
+                                                    </Box>
                                                 </Stack>
                                             </Grid>
-                                        )}
-                                    </Grid>
 
-                                    <Divider />
+                                            <Grid>
+                                                <Stack direction="row" spacing={1} alignItems="center">
+                                                    <CalendarToday fontSize="small" color="action" />
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Check-out
+                                                        </Typography>
+                                                        <Typography variant="body2" fontWeight="medium">
+                                                            {formatDate(reservation.endDate)}
+                                                        </Typography>
+                                                    </Box>
+                                                </Stack>
+                                            </Grid>
 
-                                    <Stack direction="row" spacing={2} justifyContent="flex-end">
-                                        {role === 'guest' && reservation.status === 'pending' && (
-                                            <Button
-                                                variant="outlined"
-                                                color="error"
-                                                startIcon={<Cancel />}
-                                                onClick={() => openConfirmDialog('cancel', reservation.id)}
-                                            >
-                                                Cancel Request
-                                            </Button>
-                                        )}
+                                            <Grid>
+                                                <Stack direction="row" spacing={1} alignItems="center">
+                                                    <People fontSize="small" color="action" />
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Guests
+                                                        </Typography>
+                                                        <Typography variant="body2" fontWeight="medium">
+                                                            {reservation.numberOfGuests}
+                                                        </Typography>
+                                                    </Box>
+                                                </Stack>
+                                            </Grid>
 
-                                        {canRate(reservation) && (
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                sx={{color:'white'}}
-                                                startIcon={<Star />}
-                                                onClick={() => openRatingDialog(reservation.id)}
-                                            >
-                                                {getRatingButtonText(reservation)}
-                                            </Button>
-                                        )}
+                                            <Grid>
+                                                <Stack direction="row" spacing={1} alignItems="center">
+                                                    <AttachMoney fontSize="small" color="action" />
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Total Price
+                                                        </Typography>
+                                                        <Typography variant="body2" fontWeight="medium">
+                                                            ${reservation.totalPrice}
+                                                        </Typography>
+                                                    </Box>
+                                                </Stack>
+                                            </Grid>
 
-                                        {role === 'host' && reservation.status === 'pending' && (
-                                            <>
+                                            {role === 'host' && (
+                                                <Grid>
+                                                    <Stack direction="row" spacing={1} alignItems="center">
+                                                        <Cancel fontSize="small" color="action" />
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Guest Cancellations: {reservation.guestCancellations}
+                                                        </Typography>
+                                                    </Stack>
+                                                </Grid>
+                                            )}
+                                        </Grid>
+
+                                        <Divider />
+
+                                        <Stack direction="row" spacing={2} justifyContent="flex-end">
+                                            {/* Cancel button for pending reservations */}
+                                            {role === 'guest' && reservation.status === 'pending' && (
                                                 <Button
                                                     variant="outlined"
                                                     color="error"
-                                                    startIcon={<Block />}
-                                                    onClick={() => openConfirmDialog('reject', reservation.id)}
+                                                    startIcon={<Cancel />}
+                                                    onClick={() => openConfirmDialog('cancel', reservation.id)}
                                                 >
-                                                    Reject
+                                                    Cancel Request
                                                 </Button>
+                                            )}
+
+                                            {/* Cancel button for accepted/approved reservations (if at least 1 day before) */}
+                                            {role === 'guest' && canCancelAcceptedReservation(reservation) && (
+                                                <Button
+                                                    variant="outlined"
+                                                    color="error"
+                                                    startIcon={<Cancel />}
+                                                    onClick={() => openConfirmDialog('cancel', reservation.id)}
+                                                >
+                                                    Cancel Reservation
+                                                </Button>
+                                            )}
+
+                                            {canRate(reservation) && (
                                                 <Button
                                                     variant="contained"
-                                                    color="success"
-                                                    startIcon={<CheckCircle />}
-                                                    onClick={() => openConfirmDialog('accept', reservation.id)}
+                                                    color="primary"
+                                                    sx={{color:'white'}}
+                                                    startIcon={<Star />}
+                                                    onClick={() => openRatingDialog(reservation.id)}
                                                 >
-                                                    Accept
+                                                    {getRatingButtonText(reservation)}
                                                 </Button>
-                                            </>
-                                        )}
+                                            )}
+
+                                            {role === 'host' && reservation.status === 'pending' && (
+                                                <>
+                                                    <Button
+                                                        variant="outlined"
+                                                        color="error"
+                                                        startIcon={<Block />}
+                                                        onClick={() => openConfirmDialog('reject', reservation.id)}
+                                                    >
+                                                        Reject
+                                                    </Button>
+                                                    <Button
+                                                        variant="contained"
+                                                        color="success"
+                                                        startIcon={<CheckCircle />}
+                                                        sx ={{color:'white'}}
+                                                        onClick={() => openConfirmDialog('accept', reservation.id)}
+                                                    >
+                                                        Accept
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </Stack>
                                     </Stack>
-                                </Stack>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </Stack>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </Stack>
             )}
 
             <Dialog open={confirmDialog.open} onClose={closeConfirmDialog}>
@@ -688,7 +755,7 @@ export default function ReservationsPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={closeConfirmDialog}>Cancel</Button>
-                    <Button onClick={handleConfirmAction} variant="contained" color="primary">
+                    <Button onClick={handleConfirmAction} variant="contained" sx={{color:'white'}} color="primary">
                         Confirm
                     </Button>
                 </DialogActions>

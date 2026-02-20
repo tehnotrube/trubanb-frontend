@@ -2,7 +2,7 @@
 // AccommodationViewPage.tsx - Main Page Component
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useContext} from 'react';
 import {
     Box,
     Typography,
@@ -25,10 +25,27 @@ import { Dayjs } from 'dayjs';
 import ImageGallery from "../components/ImageGallery.tsx";
 import ReservationDialog from '../components/ReservationDialog.tsx';
 import RatingsSection from "../components/RatingsSection.tsx";
-import { useParams } from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 import axios from 'axios';
 import { environment } from '../utils/Environment.tsx';
+import {AuthContext} from "../utils/AuthContext.tsx";
 
+
+interface BlockedPeriod {
+    id: string;
+    startDate: string;
+    endDate: string;
+    reason: string;
+}
+
+interface AccommodationRule {
+    id: string;
+    startDate: string;
+    endDate: string;
+    overridePrice: string;
+    multiplier: string;
+    periodType: string;
+}
 const AccommodationViewPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -38,6 +55,7 @@ const AccommodationViewPage: React.FC = () => {
         endDate: null as Dayjs | null,
         guests: '2',
     });
+    const {isAuthenticated, role, user} = useContext(AuthContext);
     const [accommodation, setAccommodation] = useState<{
         id: string;
         name: string;
@@ -56,12 +74,14 @@ const AccommodationViewPage: React.FC = () => {
         price: number;
         priceType: 'accommodation' | 'person';
         images: string[];
+        blockedPeriods: BlockedPeriod[];
+        accommodationRules: AccommodationRule[];
     } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [hostRatings, setHostRatings] = useState<{id: string; username: string; rating: number; date: string; comment?: string}[]>([]);
     const [accommodationRatings, setAccommodationRatings] = useState<{id: string; username: string; rating: number; date: string; comment?: string}[]>([]);
-
+    const navigate = useNavigate();
     useEffect(() => {
         const fetchAccommodation = async () => {
             try {
@@ -89,6 +109,8 @@ const AccommodationViewPage: React.FC = () => {
                     price: number;
                     priceType: 'accommodation' | 'person';
                     images: string[];
+                    blockedPeriods: BlockedPeriod[];
+                    accommodationRules: AccommodationRule[];
                 } = {
                     id: acc.id,
                     name: acc.name,
@@ -109,6 +131,8 @@ const AccommodationViewPage: React.FC = () => {
                     images: acc.photoUrls && acc.photoUrls.length > 0
                         ? acc.photoUrls
                         : ["https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop"],
+                    blockedPeriods: acc.blockedPeriods,
+                    accommodationRules: acc.accommodationRules,
                 };
                 
                 setAccommodation(transformedData);
@@ -251,14 +275,22 @@ const AccommodationViewPage: React.FC = () => {
                         </Typography>
                     </Box>
                 </Box>
-                <Button
+                {isAuthenticated && role=='guest' && <Button
                     variant="contained"
                     size="large"
                     onClick={() => setReservationDialogOpen(true)}
                     sx={{ color: 'white' }}
                 >
                     Reserve
-                </Button>
+                </Button>}
+                {isAuthenticated && role=='host' && accommodation.hostId==user?.id && <Button
+                    variant="contained"
+                    size="large"
+                    onClick={() => navigate(`/${accommodation.id}/edit-accommodation`)}
+                    sx={{ color: 'white' }}
+                >
+                    Edit
+                </Button>}
             </Box>
 
             {/* Image Gallery */}
@@ -388,6 +420,9 @@ const AccommodationViewPage: React.FC = () => {
                 maxGuests={accommodation.maxGuests}
                 price={accommodation.price}
                 priceType={accommodation.priceType}
+                blockedPeriods={accommodation.blockedPeriods}
+                accommodationRules={accommodation.accommodationRules}
+
             />
             <RatingsSection
                 hostRatings={hostRatings}

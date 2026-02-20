@@ -19,8 +19,8 @@ import type {PickerValue} from "@mui/x-date-pickers/internals";
 interface ExtraRulesCardProps {
     extraRules: ExtraRule[];
     onAdd: () => void;
-    onRemove: (id: number) => void;
-    onChange: (id: number, field: string, value: string|PickerValue|null) => void;
+    onRemove: (id: string) => void;
+    onChange: (id: string, field: string, value: string|PickerValue|null) => void;
 }
 
 const ExtraRulesCard: React.FC<ExtraRulesCardProps> = ({

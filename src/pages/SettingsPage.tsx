@@ -1,4 +1,4 @@
-import React, {useContext, useState, useEffect} from 'react';
+import React, {useContext, useState, useEffect, useCallback} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -19,6 +19,20 @@ import {
 import {AuthContext} from "../utils/AuthContext.tsx";
 import axios, {AxiosError} from "axios";
 import {environment} from "../utils/Environment.tsx";
+
+
+// Notification type mapping
+const NOTIFICATION_TYPE_MAP = {
+    guest: {
+        reservationAnswer: 'RESERVATION_REQUEST_RESPONDED',
+    },
+    host: {
+        newReservationRequest: 'RESERVATION_REQUEST_CREATED',
+        reservationCancellation: 'RESERVATION_CANCELLED',
+        newRatingForHost: 'HOST_RATED',
+        newRatingForAccommodation: 'ACCOMMODATION_RATED',
+    }
+};
 
 const SettingsPage: React.FC = () => {
     const { role, user, setUser, setAuthenticated, setRole } = useContext(AuthContext);
@@ -41,11 +55,75 @@ const SettingsPage: React.FC = () => {
         country: '',
     });
 
+    // Notification Settings State (Guest)
+    const [guestNotifications, setGuestNotifications] = useState({
+        reservationAnswer: true,
+    });
+
+    // Notification Settings State (Host)
+    const [hostNotifications, setHostNotifications] = useState({
+        newReservationRequest: true,
+        reservationCancellation: true,
+        newRatingForHost: true,
+        newRatingForAccommodation: true,
+    });
+
+    // Password Change State
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+    });
+
+    // Delete Account Dialog State
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+    // Wrap fetchNotificationPreferences in useCallback to stabilize the reference
+    const fetchNotificationPreferences = useCallback(async () => {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+
+        try {
+            const response = await axios.get(
+                `${environment}/api/users/notification-preferences`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const preferences = response.data;
+
+            // Create a map of notification type to enabled status
+            const preferencesMap = preferences.reduce((acc: Record<string, boolean>, pref: {
+                notificationType: string;
+                enabled: boolean;
+            }) => {
+                acc[pref.notificationType] = pref.enabled;
+                return acc;
+            }, {});
+
+            // Update guest notifications
+            setGuestNotifications({
+                reservationAnswer: preferencesMap['RESERVATION_REQUEST_RESPONDED'] ?? true,
+            });
+
+            // Update host notifications
+            setHostNotifications({
+                newReservationRequest: preferencesMap['RESERVATION_REQUEST_CREATED'] ?? true,
+                reservationCancellation: preferencesMap['RESERVATION_CANCELLED'] ?? true,
+                newRatingForHost: preferencesMap['HOST_RATED'] ?? true,
+                newRatingForAccommodation: preferencesMap['ACCOMMODATION_RATED'] ?? true,
+            });
+        } catch (error) {
+            console.error('Error fetching notification preferences:', error);
+        }
+    }, []);
+
     useEffect(() => {
         if (user) {
+            fetchNotificationPreferences();
+
             // Parse address field by comma (address, city, zip, country)
             const addressParts = (user.address || '').split(',').map((part: string) => part.trim());
-            
+
             setPersonalDetails({
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
@@ -57,30 +135,52 @@ const SettingsPage: React.FC = () => {
                 country: addressParts[3] || '',
             });
         }
-    }, [user]);
+    }, [fetchNotificationPreferences, user]);
 
-    // Password Change State
-    const [passwordData, setPasswordData] = useState({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-    });
 
-    // Notification Settings State (Guest)
-    const [guestNotifications, setGuestNotifications] = useState({
-        reservationAnswer: true,
-    });
+    const handleGuestNotificationToggle = async (key: keyof typeof guestNotifications) => {
+        const newValue = !guestNotifications[key];
+        setGuestNotifications({ ...guestNotifications, [key]: newValue });
 
-    // Notification Settings State (Host)
-    const [hostNotifications, setHostNotifications] = useState({
-        newReservationRequest: true,
-        reservationCancellation: true,
-        newRatingForHost: true,
-        newRatingForAccommodation: false,
-    });
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
 
-    // Delete Account Dialog State
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+        try {
+            await axios.put(
+                `${environment}/api/users/notification-preferences/${NOTIFICATION_TYPE_MAP.guest[key]}`,
+                {
+                    enabled: newValue,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+        } catch (error) {
+            console.error('Error updating notification preference:', error);
+            // Revert on error
+            setGuestNotifications({ ...guestNotifications, [key]: !newValue });
+        }
+    };
+
+    const handleHostNotificationToggle = async (key: keyof typeof hostNotifications) => {
+        const newValue = !hostNotifications[key];
+        setHostNotifications({ ...hostNotifications, [key]: newValue });
+
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+
+        try {
+            await axios.put(
+                `${environment}/api/users/notification-preferences/${NOTIFICATION_TYPE_MAP.host[key]}`,
+                {
+                    enabled: newValue,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+        } catch (error) {
+            console.error('Error updating notification preference:', error);
+            // Revert on error
+            setHostNotifications({ ...hostNotifications, [key]: !newValue });
+        }
+    };
 
     const handlePersonalDetailsChange = (field: string, value: string) => {
         setPersonalDetails({ ...personalDetails, [field]: value });
@@ -164,14 +264,6 @@ const SettingsPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleGuestNotificationToggle = (field: keyof typeof guestNotifications) => {
-        setGuestNotifications({ ...guestNotifications, [field]: !guestNotifications[field] });
-    };
-
-    const handleHostNotificationToggle = (field: keyof typeof hostNotifications) => {
-        setHostNotifications({ ...hostNotifications, [field]: !hostNotifications[field] });
     };
 
     const handleDeleteAccount = async () => {
@@ -300,7 +392,7 @@ const SettingsPage: React.FC = () => {
                                 variant="contained"
                                 onClick={handleSavePersonalDetails}
                                 disabled={loading}
-                                sx={{ mt: 2 }}
+                                sx={{ mt: 2, color:'white' }}
                             >
                                 {loading ? 'Saving...' : 'Save Changes'}
                             </Button>
@@ -345,7 +437,7 @@ const SettingsPage: React.FC = () => {
                                 variant="contained"
                                 onClick={handleChangePassword}
                                 disabled={loading}
-                                sx={{ mt: 2 }}
+                                sx={{ mt: 2, color:'white'}}
                             >
                                 {loading ? 'Changing...' : 'Change Password'}
                             </Button>
