@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -9,12 +9,15 @@ import {
     Box,
     Typography,
     MenuItem,
+    CircularProgress,
 } from '@mui/material';
 import {DatePicker} from '@mui/x-date-pickers/DatePicker';
 import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
 import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, {Dayjs} from 'dayjs';
+import axios from 'axios';
 import AvailabilityCalendar from "./AvailabilityCalendar.tsx";
+import {environment} from "../utils/Environment.tsx";
 
 interface BlockedPeriod {
     id: string;
@@ -36,6 +39,7 @@ interface ReservationDialogProps {
     open: boolean;
     onClose: () => void;
     onSubmit: () => void;
+    accommodationId: string;
     reservationData: {
         startDate: Dayjs | null;
         endDate: Dayjs | null;
@@ -58,6 +62,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                                                                  open,
                                                                  onClose,
                                                                  onSubmit,
+                                                                 accommodationId,
                                                                  reservationData,
                                                                  setReservationData,
                                                                  minGuests,
@@ -67,6 +72,9 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                                                                  accommodationRules,
                                                                  blockedPeriods
                                                              }) => {
+    const [totalPrice, setTotalPrice] = useState<number | null>(null);
+    const [priceLoading, setPriceLoading] = useState(false);
+
     const handleDateChange = (field: 'startDate' | 'endDate') => (date: Dayjs | null) => {
         setReservationData(prev => ({...prev, [field]: date}));
     };
@@ -75,28 +83,52 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
         setReservationData(prev => ({...prev, guests: event.target.value}));
     };
 
-    const calculateTotal = () => {
-        if (!reservationData.startDate || !reservationData.endDate) return 0;
+    const isValid = reservationData.startDate &&
+        reservationData.endDate &&
+        reservationData.guests &&
+        reservationData.endDate.isAfter(reservationData.startDate);
 
-        const nights = reservationData.endDate.diff(reservationData.startDate, 'day');
-        const guestCount = parseInt(reservationData.guests) || 0;
-
-        if (priceType === 'accommodation') {
-            return nights * price;
-        } else {
-            return nights * price * guestCount;
+    // Fetch real total price from the backend whenever dates or guests change
+    useEffect(() => {
+        if (!isValid) {
+            setTotalPrice(null);
+            return;
         }
-    };
+
+        const fetchPrice = async () => {
+            setPriceLoading(true);
+            try {
+                const params = new URLSearchParams();
+                params.set('checkIn', reservationData.startDate!.format('YYYY-MM-DD'));
+                params.set('checkOut', reservationData.endDate!.format('YYYY-MM-DD'));
+                params.set('guests', reservationData.guests);
+
+                const response = await axios.get(
+                    `${environment}/api/accommodations/${accommodationId}?${params.toString()}`
+                );
+
+                // totalPriceForStay is returned by the endpoint
+                const fetched = response.data?.totalPriceForStay ?? response.data?.data?.totalPriceForStay ?? null;
+                setTotalPrice(fetched);
+            } catch (err) {
+                console.error('Failed to fetch price:', err);
+                setTotalPrice(null);
+            } finally {
+                setPriceLoading(false);
+            }
+        };
+
+        fetchPrice();
+    }, [reservationData.startDate, reservationData.endDate, reservationData.guests, accommodationId, isValid]);
+
+    const nights = reservationData.startDate && reservationData.endDate
+        ? reservationData.endDate.diff(reservationData.startDate, 'day')
+        : 0;
 
     const guestOptions = Array.from(
         {length: maxGuests - minGuests + 1},
         (_, i) => minGuests + i
     );
-
-    const isValid = reservationData.startDate &&
-        reservationData.endDate &&
-        reservationData.guests &&
-        reservationData.endDate.isAfter(reservationData.startDate);
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -108,9 +140,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                             label="Check-in Date"
                             value={reservationData.startDate}
                             onChange={handleDateChange('startDate')}
-                            slotProps={{
-                                textField: {fullWidth: true}
-                            }}
+                            slotProps={{textField: {fullWidth: true}}}
                         />
 
                         <DatePicker
@@ -118,9 +148,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                             value={reservationData.endDate}
                             onChange={handleDateChange('endDate')}
                             minDate={reservationData.startDate || undefined}
-                            slotProps={{
-                                textField: {fullWidth: true}
-                            }}
+                            slotProps={{textField: {fullWidth: true}}}
                         />
 
                         <TextField
@@ -149,14 +177,29 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                                     Reservation Summary
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    {reservationData.endDate!.diff(reservationData.startDate, 'day')} nights ×
+                                    {nights} nights ×
                                     ${price} {priceType === 'person' ? `× ${reservationData.guests} guests` : ''}
                                 </Typography>
-                                <Typography variant="h5" sx={{mt: 1, fontWeight: 600, color: 'primary.main'}}>
-                                    Total: ${calculateTotal()}
-                                </Typography>
+
+                                {priceLoading ? (
+                                    <Box sx={{display: 'flex', alignItems: 'center', gap: 1, mt: 1}}>
+                                        <CircularProgress size={18}/>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Calculating total...
+                                        </Typography>
+                                    </Box>
+                                ) : totalPrice !== null ? (
+                                    <Typography variant="h5" sx={{mt: 1, fontWeight: 600, color: 'primary.main'}}>
+                                        Total: ${totalPrice}
+                                    </Typography>
+                                ) : (
+                                    <Typography variant="body2" color="error" sx={{mt: 1}}>
+                                        Could not calculate total price.
+                                    </Typography>
+                                )}
                             </Box>
                         )}
+
                         <AvailabilityCalendar
                             generalAvailability={[{
                                 id: '1',
@@ -189,7 +232,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                     <Button
                         onClick={onSubmit}
                         variant="contained"
-                        disabled={!isValid}
+                        disabled={!isValid || priceLoading || totalPrice === null}
                         sx={{color: 'white'}}
                     >
                         Confirm Reservation

@@ -29,6 +29,7 @@ import { Notifications as NotificationsIcon } from '@mui/icons-material';
 import { Badge } from '@mui/material';
 import { useNotification } from '../utils/NotificationContext';
 import NotificationsPanel from './NotificationPanel.tsx';
+import SearchPage from "../pages/SearchPage.tsx";
 
 interface SidebarLayoutProps {
   children: ReactNode;
@@ -290,7 +291,9 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         WebkitBackdropFilter: 'blur(12px)',
         overflow: 'auto'
       }}>
-        {children}
+        {view !='search' && children
+        }
+        {view =='search' && <SearchPage/>}
       </Box>
       {/* Notifications Panel */}
       <NotificationsPanel

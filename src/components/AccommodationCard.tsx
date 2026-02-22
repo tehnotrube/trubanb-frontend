@@ -5,7 +5,6 @@ import {
   CardContent,
   CardMedia,
   Chip,
-  Rating,
   Typography,
   Divider,
 } from "@mui/material";
@@ -68,13 +67,6 @@ const AccommodationCard: React.FC<AccommodationCardProps> = ({ accommodation }) 
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
           {accommodation.name}
         </Typography>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1.5 }}>
-          <Rating value={accommodation.rating} precision={0.1} readOnly size="small" />
-          <Typography variant="body2" color="text.secondary">
-            {accommodation.rating.toFixed(1)}
-          </Typography>
-        </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", mb: 1.5, color: "text.secondary" }}>
           <LocationIcon sx={{ fontSize: 18, mr: 0.5 }} />
