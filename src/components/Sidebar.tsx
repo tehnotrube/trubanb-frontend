@@ -1,4 +1,4 @@
-import React, { type ReactNode, useContext, useState } from 'react';
+import React, {type ReactNode, useContext, useEffect, useState} from 'react';
 import {
   Box,
   List,
@@ -48,6 +48,12 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const [view, setView] = useState<'menu' | 'search'>(
     location.pathname === "/" ? 'search' : 'menu'
   );
+
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      setTimeout(() => setView('menu'), 0);
+    }
+  }, [location.pathname]);
 
   const [checkIn, setCheckIn] = useState<Dayjs | null>(
     searchParams.get('checkIn') ? dayjs(searchParams.get('checkIn')) : null
