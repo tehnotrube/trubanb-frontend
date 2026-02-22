@@ -13,11 +13,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isRefreshingRef = useRef(false); // ADDED: Prevent multiple simultaneous refresh attempts
+    const isRefreshingRef = useRef(false);
 
-    // Function to refresh the token
     const refreshToken = useCallback(async () => {
-        // Prevent multiple simultaneous refresh attempts
         if (isRefreshingRef.current) {
             return false;
         }
@@ -35,14 +33,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
             isRefreshingRef.current = true;
             console.log('Attempting to refresh token...');
 
-            const res = await axios.post(`${environment}/api/auth/refresh`, {
+            const res = await axios.post(`${environment}/api/users/auth/refresh`, {
                 refreshToken: refresh
             });
 
             if (res.status === 200 && res.data.accessToken) {
                 localStorage.setItem('accessToken', res.data.accessToken);
 
-                // If a new refresh token is provided, update it
                 if (res.data.refreshToken) {
                     localStorage.setItem('refreshToken', res.data.refreshToken);
                 }
@@ -54,7 +51,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
             return false;
         } catch (error) {
             console.error('Token refresh failed:', error);
-            // Clear tokens and logout
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             setIsAuthenticated(false);
@@ -66,7 +62,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
         }
     }, []);
 
-    // Setup axios interceptor to handle 401 errors
     useEffect(() => {
         const interceptor = axios.interceptors.response.use(
             (response) => response,
@@ -74,23 +69,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
                 const originalRequest = error.config;
 
                 console.log('Axios interceptor caught error:', error.response?.status);
+                const isAuthEndpoint = originalRequest.url?.includes('/api/users/auth/');
 
-                // If error is 401 and we haven't tried to refresh yet
-                if (error.response?.status === 401 && !originalRequest._retry) {
+                if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
                     originalRequest._retry = true;
 
                     console.log('Attempting to refresh token due to 401...');
                     const refreshed = await refreshToken();
 
                     if (refreshed) {
-                        // Retry the original request with new token
                         const token = localStorage.getItem('accessToken');
                         originalRequest.headers['Authorization'] = `Bearer ${token}`;
                         console.log('Retrying original request with new token');
                         return axios(originalRequest);
                     } else {
                         console.log('Token refresh failed, redirecting to login');
-                        // Redirect to login page or show auth error
                         window.location.href = '/sign-in';
                     }
                 }
@@ -104,24 +97,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
         };
     }, [refreshToken]);
 
-    // Schedule automatic token refresh before it expires
     const scheduleTokenRefresh = useCallback(() => {
-        // Clear any existing timer
         if (refreshTimerRef.current) {
             clearTimeout(refreshTimerRef.current);
         }
 
-        // Refresh token 5 minutes before it expires
-        // Adjust this based on your token expiration time
-        // For example, if token expires in 15 minutes, refresh after 10 minutes
-        const refreshInterval = 10 * 60 * 1000; // 10 minutes
+        const refreshInterval = 10 * 60 * 1000;
 
         refreshTimerRef.current = setTimeout(async () => {
             console.log('Scheduled token refresh triggered');
             const refreshed = await refreshToken();
 
             if (refreshed) {
-                // Schedule next refresh
                 scheduleTokenRefresh();
             }
         }, refreshInterval);
@@ -151,7 +138,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
                 setUser(res.data);
                 setRole(res.data.role || 'guest');
 
-                // Schedule token refresh
                 scheduleTokenRefresh();
             }
         } catch (error) {
@@ -195,7 +181,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children } ) => {
     useEffect(() => {
         checkAuth();
 
-        // Cleanup timer on unmount
         return () => {
             if (refreshTimerRef.current) {
                 clearTimeout(refreshTimerRef.current);
