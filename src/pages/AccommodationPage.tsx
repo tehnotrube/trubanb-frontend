@@ -416,6 +416,7 @@ const AccommodationViewPage: React.FC = () => {
                 onSubmit={handleReservationSubmit}
                 reservationData={reservationData}
                 setReservationData={setReservationData}
+                accommodationId={accommodation.id}
                 minGuests={accommodation.minGuests}
                 maxGuests={accommodation.maxGuests}
                 price={accommodation.price}

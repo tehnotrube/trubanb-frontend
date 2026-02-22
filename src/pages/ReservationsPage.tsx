@@ -179,7 +179,11 @@ export default function ReservationsPage() {
                     })
                 );
 
-                setReservations(reservationsWithNames);
+                setReservations(
+                    [...reservationsWithNames].sort(
+                        (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+                    )
+                );
                 setError(null);
             } catch (error) {
                 console.error('Error fetching reservations:', error);
@@ -525,15 +529,7 @@ export default function ReservationsPage() {
         return 'Rate Experience';
     };
 
-    const filteredReservations = reservations.filter(res => {
-        if (role === 'host') {
-            // Hosts see pending requests
-            return res.status === 'pending';
-        } else {
-            // Guests see all their reservations
-            return true;
-        }
-    });
+    const filteredReservations = reservations
 
     const currentReservation = reservations.find(r => r.id === ratingDialog.reservationId);
 
