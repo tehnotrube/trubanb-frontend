@@ -104,11 +104,16 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                 params.set('guests', reservationData.guests);
 
                 const response = await axios.get(
-                    `${environment}/api/accommodations/${accommodationId}?${params.toString()}`
+                    `${environment}/api/accommodations?${params.toString()}`
                 );
 
+                const data = response.data.data ?? response.data;
+                const match = Array.isArray(data)
+                    ? (data.find((acc: { id: string }) => acc.id === accommodationId) ?? null)
+                    : null;
+
                 // totalPriceForStay is returned by the endpoint
-                const fetched = response.data?.totalPriceForStay ?? response.data?.data?.totalPriceForStay ?? null;
+                const fetched = match.totalPriceForStay ?? null;
                 setTotalPrice(fetched);
             } catch (err) {
                 console.error('Failed to fetch price:', err);
@@ -194,7 +199,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({
                                     </Typography>
                                 ) : (
                                     <Typography variant="body2" color="error" sx={{mt: 1}}>
-                                        Could not calculate total price.
+                                        Accommodation not available
                                     </Typography>
                                 )}
                             </Box>
