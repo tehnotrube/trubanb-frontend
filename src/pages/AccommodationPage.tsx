@@ -140,13 +140,24 @@ const AccommodationViewPage: React.FC = () => {
                 // Fetch accommodation ratings
                 try {
                     const ratingsRes = await axios.get(`${environment}/api/ratings/target/${acc.id}`);
-                    const ratings = ratingsRes.data.ratings.map((r: {id: string; guestId: string; score: number; createdAt: string; comment?: string}) => ({
-                        id: r.id,
-                        username: r.guestId,
-                        rating: r.score,
-                        date: r.createdAt,
-                        comment: r.comment,
-                    }));
+                    const ratings = await Promise.all(
+                        ratingsRes.data.ratings.map(async (r: {id: string; guestId: string; score: number; createdAt: string; comment?: string}) => {
+                            let username = r.guestId;
+                            try {
+                                const userRes = await axios.get(`${environment}/api/users/public/${r.guestId}`);
+                                username = userRes.data.username;
+                            } catch {
+                                console.warn(`Could not fetch username for guest ${r.guestId}`);
+                            }
+                            return {
+                                id: r.id,
+                                username,
+                                rating: r.score,
+                                date: r.createdAt,
+                                comment: r.comment,
+                            };
+                        })
+                    );
                     setAccommodationRatings(ratings);
                 } catch (ratingsErr) {
                     console.warn('Could not fetch accommodation ratings:', ratingsErr);
@@ -157,13 +168,24 @@ const AccommodationViewPage: React.FC = () => {
                 if (acc.hostId) {
                     try {
                         const hostRatingsRes = await axios.get(`${environment}/api/ratings/target/${acc.hostId}`);
-                        const hostRatings = hostRatingsRes.data.ratings.map((r: {id: string; guestId: string; score: number; createdAt: string; comment?: string}) => ({
-                            id: r.id,
-                            username: r.guestId,
-                            rating: r.score,
-                            date: r.createdAt,
-                            comment: r.comment,
-                        }));
+                        const hostRatings = await Promise.all(
+                            hostRatingsRes.data.ratings.map(async (r: {id: string; guestId: string; score: number; createdAt: string; comment?: string}) => {
+                                let username = r.guestId;
+                                try {
+                                    const userRes = await axios.get(`${environment}/api/users/public/${r.guestId}`);
+                                    username = userRes.data.username;
+                                } catch {
+                                    console.warn(`Could not fetch username for guest ${r.guestId}`);
+                                }
+                                return {
+                                    id: r.id,
+                                    username,
+                                    rating: r.score,
+                                    date: r.createdAt,
+                                    comment: r.comment,
+                                };
+                            })
+                        );
                         setHostRatings(hostRatings);
                     } catch (hostRatingsErr) {
                         console.warn('Could not fetch host ratings:', hostRatingsErr);
