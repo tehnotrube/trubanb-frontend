@@ -30,7 +30,6 @@ interface RatingDialogProps {
     onDeleteHost?: () => void;
     onDeleteAccommodation?: () => void;
     accommodationName: string;
-    guestName: string;
     existingHostRating?: ExistingRating;
     existingAccommodationRating?: ExistingRating;
 }
@@ -43,7 +42,6 @@ const RatingDialog: React.FC<RatingDialogProps> = ({
                                                        onDeleteHost,
                                                        onDeleteAccommodation,
                                                        accommodationName,
-                                                       guestName,
                                                        existingHostRating,
                                                        existingAccommodationRating,
                                                    }) => {
@@ -189,9 +187,6 @@ const RatingDialog: React.FC<RatingDialogProps> = ({
                                 <Box>
                                     <Typography variant="subtitle1" gutterBottom fontWeight="600">
                                         {hasHostRating ? 'Edit Your Host Rating' : 'How was your experience with the host?'}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                        Rate {guestName}'s hospitality and communication
                                     </Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                         <Rating

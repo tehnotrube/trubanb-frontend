@@ -51,6 +51,7 @@ interface Reservation {
     guestCancellations?: number;
     hostRating?: RatingData;
     accommodationRating?: RatingData;
+    accommodationDeleted?: boolean;
 }
 
 export default function ReservationsPage() {
@@ -129,9 +130,9 @@ export default function ReservationsPage() {
                                     const accResponse = await axios.get(
                                         `${environment}/api/accommodations/${req.accommodationId}`
                                     );
-                                    return { ...req, accommodationName: accResponse.data.name };
+                                    return { ...req, accommodationName: accResponse.data.name, accommodationDeleted: false };
                                 } catch {
-                                    return { ...req, accommodationName: 'Accommodation' };
+                                    return { ...req, accommodationName: 'Deleted Accommodation', accommodationDeleted: true };
                                 }
                             })
                         );
@@ -168,11 +169,12 @@ export default function ReservationsPage() {
                                 );
                                 return {
                                     ...reservation,
-                                    accommodationName: accResponse.data.name
+                                    accommodationName: accResponse.data.name,
+                                    accommodationDeleted: false
                                 };
                             } catch (error) {
                                 console.error(`Failed to fetch accommodation ${reservation.accommodationId}:`, error);
-                                return reservation; // Return original if fetch fails
+                                return { ...reservation, accommodationName: 'Deleted Accommodation', accommodationDeleted: true }; // Return original if fetch fails
                             }
                         }
                         return reservation;
@@ -501,7 +503,7 @@ export default function ReservationsPage() {
         return (
             role === 'guest' &&
             (reservation.status === 'accepted' || reservation.status === 'approved') &&
-            isPastReservation(reservation.endDate)
+            isPastReservation(reservation.endDate) && !reservation.accommodationDeleted
         );
     };
 
@@ -766,7 +768,6 @@ export default function ReservationsPage() {
                     onDeleteHost={handleHostRatingDelete}
                     onDeleteAccommodation={handleAccommodationRatingDelete}
                     accommodationName={currentReservation.accommodationName}
-                    guestName={currentReservation.guestName}
                     existingHostRating={currentReservation.hostRating}
                     existingAccommodationRating={currentReservation.accommodationRating}
                 />
